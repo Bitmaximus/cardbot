@@ -1,7 +1,8 @@
 var logger = require('winston');
 var utils = require('./utils.js');
 const Discord = require('discord.js');
-const {Deck} = require('./deck.js');
+const {Deck} = require('./models/deck.js');
+const {Game} = require('./models/game.js');
 
 //Logger timestamp
 const console = (function () {
@@ -89,34 +90,23 @@ var commands = {
 		help: '**Example Use**: `' + utils.DEFAULTPREFIX + 'start`',
 		permittedRoles: [],
 		execute: function (message, params) {
-			message.channel.send("React to enter the tournament").then()
+			utils.start_game(message);
 		}
 	},
 
-	
 	'deal': {
 		description: 'Deals a hand of two cards',
 		permittedRoles: [],
 		parameters: [],
 		help: '\deal to deal two cards',
 		execute: async function (message, params) {
-			const content = message.content;
-			const args = message.content.split(' ');
-			let hand = deck.pick(2,"Hand");
+			if (!game) return;
+			let cards = game.deck.pick(2,"Hand");
 			game_state.hands_dealt++;
-
-			message.channel.send(`Deck has ${deck.cards.length} cards left in it.`,{
-				files: [
-				{
-				  attachment: `./card_images/${hand[0].rank.name}_of_${hand[0].suit.fullname.toLowerCase()}.png`,
-				  name: 'card1.jpg'
-				},
-				{
-				attachment: `./card_images/${hand[1].rank.name}_of_${hand[1].suit.fullname.toLowerCase()}.png`,
-				name: 'card2.jpg'
-				}
-				]
-			  });
+			
+			message.channel.send({embed: utils.genSimpleMsg(`Hand dealt to ${message.author.username}\nThe deck now has ${deck.cards.length} cards left in it.`, message)});
+			message.author.send(`Here is your hand, good luck!`, await utils.display_horizontal(cards));
+			message.delete();
 		}
 	},
 
@@ -126,30 +116,31 @@ var commands = {
 		parameters: [],
 		help: '\flop',
 		execute: async function (message, params) {
-			const content = message.content;
-			const args = message.content.split(' ');
-			deck.pick(1,"Muck");
-			let hand = deck.pick(3,"Flop");
+			if (!game) return;
+			game.deck.pick(1,"Muck");
+			let cards = game.deck.pick(3,"Flop");
 			game_state.flop = true;
-			game_state.board.push(hand);
+			for(card of cards) game_state.board.push(card);
 
-			message.channel.send(`Here comes the flop!`,{
-				files: [
-				{
-				  attachment: `./card_images/${hand[0].rank.name}_of_${hand[0].suit.fullname.toLowerCase()}.png`,
-				  name: 'card1.jpg'
-				},
-				{
-				attachment: `./card_images/${hand[1].rank.name}_of_${hand[1].suit.fullname.toLowerCase()}.png`,
-				name: 'card2.jpg'
-				},
+			message.channel.send(`**__Here comes the flop!__**`, await utils.display_horizontal(cards));
+			message.delete();
+		}
+	}, 
 
-				{
-				attachment: `./card_images/${hand[2].rank.name}_of_${hand[2].suit.fullname.toLowerCase()}.png`,
-				name: 'card3.jpg'
-				}
-				]
-			  });
+	'flap': {
+		description: 'Deals a flop of seven cards',
+		permittedRoles: [],
+		parameters: [],
+		help: '\flap',
+		execute: async function (message, params) {
+			if (!game) return;
+			game.deck.pick(1,"Muck");
+			let cards = game.deck.pick(7,"Flap");
+			game_state.flop = true;
+			for(card of cards) game_state.board.push(card);
+
+			message.channel.send(`**__Here comes the flap!__**`, await utils.display_horizontal(cards));
+			message.delete();
 		}
 	}, 
 
@@ -159,21 +150,14 @@ var commands = {
 		parameters: [],
 		help: '\turn',
 		execute: async function (message, params) {
-			const content = message.content;
-			const args = message.content.split(' ');
-			deck.pick(1,"Muck");
-			let hand = deck.pick(1,"Turn");
+			if (!game) return;
+			game.deck.pick(1,"Muck");
+			let cards = game.deck.pick(1,"Turn");
 			game_state.turn = true;
-			game_state.board.push(hand);
+			game_state.board.push(cards[0]);
 
-			message.channel.send(`Burn and TURN baby!!!`,{
-				files: [
-				{
-				  attachment: `./card_images/${hand[0].rank.name}_of_${hand[0].suit.fullname.toLowerCase()}.png`,
-				  name: 'card1.jpg'
-				}
-				]
-			  });
+			message.channel.send(`**__Burn and TURN baby!!!__**`, await utils.display_horizontal(cards));
+			message.delete();
 		}
 	}, 
 
@@ -183,21 +167,28 @@ var commands = {
 		parameters: [],
 		help: '\river',
 		execute: async function (message, params) {
-			const content = message.content;
-			const args = message.content.split(' ');
-			deck.pick(1,"Muck");
-			let hand = deck.pick(1,"River");
+			if (!game) return;
+			game.deck.pick(1,"Muck");
+			let cards = game.deck.pick(1,"River");
 			game_state.river = true;
-			game_state.board.push(hand);
+			game_state.board.push(cards[0]);
+			message.channel.send(`**__This is it, the river!__**`, await utils.display_horizontal(cards));
+			message.delete();
+		}
+	}, 
 
-			message.channel.send(`This is it, the river!`,{
-				files: [
-				{
-				  attachment: `./card_images/${hand[0].rank.name}_of_${hand[0].suit.fullname.toLowerCase()}.png`,
-				  name: 'card1.jpg'
-				}
-				]
-			  });
+	'cheat': {
+		description: 'Puts one card of your choosing onto the board',
+		permittedRoles: [],
+		parameters: [],
+		help: '\cheat ',
+		execute: async function (message, params) {
+			if (!game) return;
+			const args = message.content.split(' ');
+			let cards = game.deck.cheat(args[1]);
+			game_state.board.push(cards[0]);
+			message.channel.send(`**__Ace up ma sleeve ;)__**`, await utils.display_horizontal(cards));
+			message.delete();
 		}
 	}, 
 
@@ -218,6 +209,7 @@ var commands = {
 				board : []
 			  }
 			message.channel.send(`The deck has been reset`);
+			message.delete();
 		}
 	},
 
@@ -227,14 +219,15 @@ var commands = {
 		parameters: [],
 		help: '\deal to deal two cards',
 		execute: async function (message, params) {
-			const content = message.content;
-			const args = message.content.split(' ');
+			if (!game) return;
 			message.channel.send(`
-			Cards left in deck: ${deck.cards.length}
+			Cards left in deck: ${game.deck.cards.length}
 			Hands dealt: ${game_state.hands_dealt}
 			Hand phase: ${(game_state.river)? "River" : (game_state.turn)? "Turn" : (game_state.flop)? "Flop" : "Deal"}
-			Board state: ${game_state.board.map(card => card.toString()).join(' | ')}
-			`);
+			Board state: ${game_state.board.map(card => card.toString()).join('|')}
+			Best hand: ${utils.eval_best_hand(game_state.board)}
+			`);						
+			message.delete();
 		}
 	}
 }
@@ -251,15 +244,15 @@ var adminCommands = {
 			const content = message.content;
 			const args = message.content.split(' ');
 			let deck = new Deck();
-			let hand = deck.deal(2);
+			let hand = game.deck.deal(2);
 
 			console.log(hand);
 			
 
 			const exampleEmbed = new Discord.MessageEmbed()
 			.setTitle('Your Hand')
-			.attachFiles([`./card_images/${hand[0].rank.name}_of_${hand[0].suit.fullname.toLowerCase()}.png`,
-			`./card_images/${hand[1].rank.name}_of_${hand[1].suit.fullname.toLowerCase()}.png`])
+			.attachFiles([`./card_images_75/${hand[0].rank.name}_of_${hand[0].suit.fullname.toLowerCase()}.png`,
+			`./card_images_75/${hand[1].rank.name}_of_${hand[1].suit.fullname.toLowerCase()}.png`])
 
 			message.channel.send({embed: exampleEmbed});
 		}
@@ -337,7 +330,7 @@ var adminCommands = {
 	'poll': {
 		description: 'Posts and pins a message, adding :thumbsup: :thumbsdown: :shrug: for people to vote.',
 		parameters: [],
-		permittedRoles: ["Ranks"],
+		permittedRoles: [],
 		execute: function (message, params){
 			message.channel.send(params.args.slice(1).join(' ')).then(async function(msg){
 				await msg.react("👍");

@@ -5,12 +5,11 @@ const utils = require('./utils.js');
 var CronJob = require('cron').CronJob;
 const Discord = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
-const {Deck} = require('./deck.js');
-
+const {Deck} = require('./models/deck.js');
 
 //Initialize Discord client object globally
 global.client = new Discord.Client();
-global.deck = new Deck();
+global.game = null;
 global.game_state = {
   hands_dealt : 0,
   flop : false,

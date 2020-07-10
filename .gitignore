@@ -124,4 +124,7 @@ dist
 
 # secret
 secret.json
-card_images/
+other_images/
+card_images_50/
+card_images_75/
+

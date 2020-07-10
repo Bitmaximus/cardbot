@@ -1,5 +1,11 @@
 const {Card}  = require('./card.js');
-const utils = require('./utils.js');
+const _ = require('lodash');
+
+function getRandomIntInclusive(min, max) {
+	min = Math.ceil(min);
+	max = Math.floor(max);
+	return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive 
+}
 
 class Deck {
     constructor() {
@@ -20,14 +26,22 @@ class Deck {
     }
 
     pick(n,loc) {
-        if (n<1 || n>52) return;
+        if (n<0 || n>51) return;
         var drawn_cards = [];
         for (let i=0; i<n; i++){
-            let id_to_pick = utils.getRandomIntInclusive(0,this._cards.length-1)
+            let id_to_pick = getRandomIntInclusive(0,this._cards.length-1)
             let picked_card = this._cards.splice(id_to_pick,1)[0];
-            picked_card.location = loc;
+            picked_card.location = loc; 
             drawn_cards.push(picked_card);
         }
+        return drawn_cards;
+    }
+
+    cheat(idx) {
+        if (idx<0 || idx>51) return;
+        var drawn_cards = [];
+        let picked_card =  _.remove(this._cards, (n) => n.id == idx)[0];
+        drawn_cards.push(picked_card);
         return drawn_cards;
     }
     
