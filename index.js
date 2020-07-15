@@ -10,14 +10,6 @@ const {Deck} = require('./models/deck.js');
 //Initialize Discord client object globally
 global.client = new Discord.Client();
 global.game = null;
-global.game_state = {
-  hands_dealt : 0,
-  flop : false,
-  turn : false,
-  river : false,
-  board : []
-}
-
 
 client.login(secret.token);	
  

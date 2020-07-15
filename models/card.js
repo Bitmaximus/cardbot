@@ -1,26 +1,3 @@
-const card_name_list = {
-	"0" : {name : "2", fullname : "Two", val : "2"},
-	"1" : {name : "3", fullname : "Three", val : "3"},
-	"2" : {name : "4", fullname : "Four", val : "4"},
-	"3" : {name : "5", fullname : "Five", val : "5"},
-	"4" : {name : "6", fullname : "Six", val : "6"},
-	"5" : {name : "7", fullname : "Seven", val : "7"},
-	"6" : {name : "8", fullname : "Eight", val : "8"},
-	"7" : {name : "9", fullname : "Nine", val : "9"},
-	"8" : {name : "T", fullname : "Ten", val : "10"},
-	"9" : {name : "J", fullname : "Jack", val : "11"},
-	"10" : {name : "Q", fullname : "Queen", val : "12"},
-	"11" : {name : "K", fullname : "King", val : "13"},
-	"12" : {name : "A", fullname : "Ace", val : "14"}
-}
-
-const suit_name_list = {
-	"0" : {name : "C", fullname : "Clubs"},
-	"1" : {name : "D", fullname : "Diamonds"},
-	"2" : {name : "H", fullname : "Hearts"},
-	"3" : {name : "S", fullname : "Spades"}
-}
-
 class Card {
     constructor(id) {
         if (id < 52){
@@ -66,13 +43,45 @@ class Card {
         this._location = value;
     }
 
+    get visible() {
+        return this._visible;
+    }
+
+    set visible(value){
+        this._visible = value;
+    }
+
     toString() {
-        return this.rank.name + this.suit.name;
+        return this.rank.name + this.suit.emoji;
     }
 
     toSortableString() {
         return this._suit.name + "-" + this._rank.val;
     }
 }
+
+const card_name_list = {
+	"0" : {name : "2", fullname : "Two", val : "2"},
+	"1" : {name : "3", fullname : "Three", val : "3"},
+	"2" : {name : "4", fullname : "Four", val : "4"},
+	"3" : {name : "5", fullname : "Five", val : "5"},
+	"4" : {name : "6", fullname : "Six", val : "6"},
+	"5" : {name : "7", fullname : "Seven", val : "7"},
+	"6" : {name : "8", fullname : "Eight", val : "8"},
+	"7" : {name : "9", fullname : "Nine", val : "9"},
+	"8" : {name : "T", fullname : "Ten", val : "10"},
+	"9" : {name : "J", fullname : "Jack", val : "11"},
+	"10" : {name : "Q", fullname : "Queen", val : "12"},
+	"11" : {name : "K", fullname : "King", val : "13"},
+	"12" : {name : "A", fullname : "Ace", val : "14"}
+}
+
+const suit_name_list = {
+	"0" : {name : "C", fullname : "Clubs", emoji : "\\♣️"},
+	"1" : {name : "D", fullname : "Diamonds", emoji : "\\♦️"},
+	"2" : {name : "H", fullname : "Hearts", emoji : "\\♥️"},
+	"3" : {name : "S", fullname : "Spades", emoji : "\\♠️"}
+}
+
 
 exports.Card = Card;

@@ -39,4 +39,27 @@ class GameStructure{
     }
 }
 
+const default_blinds = [
+    5,
+    10,		
+    15,		
+    20,		
+    30,		
+    50,		
+    75,		
+    125,		
+    200,	
+    300,	
+    500,	
+    800,	
+    1500
+]
+    
+const default_blind_timer = 20;
+
+const default_starting_stack = 1000;
+
 exports.GameStructure = GameStructure;
+exports.default_blinds = default_blinds;
+exports.default_blind_timer = default_blind_timer;
+exports.default_starting_stack = default_starting_stack;

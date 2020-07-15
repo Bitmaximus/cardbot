@@ -1,47 +1,19 @@
 const Discord = require('discord.js');
 const _ = require('lodash');
 const {Game} = require('./models/game.js');
-const {GameStructure} = require('./models/game_structure.js');
+const {GameStructure, default_blinds, default_blind_timer, default_starting_stack} = require('./models/game_structure.js');
 const {HandResult} = require('./models/hand_result.js');
 const {createCanvas, loadImage} = require('canvas');
 
 
 const RED = "RED";
 const GREEN = "GREEN";
-const BLUE = 3447003;
+const BLUE = 3447003; 
 const YELLOW = "#dde61a";
 const bot_id = '727656097195884615';
 
 const DEFAULTPREFIX = '/';
 const ADMINPREFIX = '!';
-
-const game_state_list = [
-	"INITIALIZING",
-	"PRE-FLOP",
-	"FLOP",
-	"TURN",
-	"RIVER"
-]
-
-const default_blinds = [
-5,
-10,		
-15,		
-20,		
-30,		
-50,		
-75,		
-125,		
-200,	
-300,	
-500,	
-800,	
-1500
-]
-
-const default_timer = 20;
-
-const default_starting_stack = 1000;
 
 async function display_horizontal(cards) {
 	const canvas = createCanvas(cards.length * 135, 181);
@@ -110,14 +82,15 @@ function start_game(message){
 	message.channel.send("React to enter the tournament").then(
 		async (msg) => {
 			await msg.react('▶️').catch(console.error);
-			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), { max: 10, time: 5000});
+			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), { max: 1, time: 500000});
 			
 			collector.on('end', async (collected) => {
 				let users = Array.from(collected.get('▶️').users.cache.values()).filter(user => user.id != bot_id);
 				let members = [];
 				for (let i = 0; i < users.length; i++) {members.push(await message.guild.members.fetch(users[i]))}
-				global.game = new Game(members, new GameStructure(default_blinds, default_timer, default_starting_stack));
-				message.channel.send("The game has begun!", new Discord.MessageAttachment(await game.create_table().then(canvas => canvas.toBuffer()), 'table.png'));
+				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack),message.channel);
+				await message.channel.send("The game has begun!", new Discord.MessageAttachment(await game.init_table().then(canvas => canvas.toBuffer()), 'table.png'));
+				game.round.advance_state();
 			});
 		}
 	)
@@ -156,11 +129,13 @@ function check_flush(cards){
 
 function eval_dupes(cards){
 	if (!cards || cards.length < 5) return; 
+
 	let freq = {}; for (let i = 0; i < cards.length; i++) {freq[(cards[i].rank.val)] = freq[(cards[i].rank.val)] + 1 || 1};
 	let dupes = Object.entries(freq).sort((a,b) => b[0]-a[0]);
 
 	let max_duped = _.maxBy(dupes, function(p) { return p[1]; });
 	dupes.splice(dupes.indexOf(max_duped),1);
+
 	let next_max_duped = _.maxBy(dupes, function(p) { return p[1]; });
 	dupes.splice(dupes.indexOf(next_max_duped),1);
 
@@ -171,10 +146,10 @@ function eval_dupes(cards){
 			   new HandResult(6,[max_duped[0],next_max_duped[0]],[]) : 
 			   new HandResult(3, max_duped[0], [next_max_duped[0], Math.max(...dupes.map(x => x[0]))]);
 		case 2: return (next_max_duped[1] == 2)? 
-			   new HandResult(2, [max_duped[0], next_max_duped[0]], [Math.max(...dupes.map(x => x[0]))]) : 
-			   new HandResult(1, [max_duped[0]],[next_max_duped[0]]);
+			   new HandResult(2, [max_duped[0], next_max_duped[0]], [dupes.map(x => x[0])[0]]) : 
+			   new HandResult(1, [max_duped[0]],[next_max_duped[0]].concat(dupes.map(x=>x[0]).slice(0,2)));
 		default: 
-		return new HandResult(0,[max_duped[0]], []);
+		return new HandResult(0,[max_duped[0]], [next_max_duped[0]].concat(dupes.map(x=>x[0]).slice(0,3)));
 	}
 }
 
@@ -195,7 +170,6 @@ module.exports = {
 	getRoleId,
 	hasRole,
 	isPermitted,
-	game_state_list,
 	eval_dupes,
 	check_flush,
 	check_straights,
