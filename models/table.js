@@ -113,21 +113,21 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
 
 class Table{
     constructor(players){
-        this._initial_graphic = this.init_table(players);
-        this._graphic = this._initial_graphic;
         this._players = players;
+        this._initial_graphic = this.init_table();
+        this._graphic = this._initial_graphic;
     }
 
-    async init_table(players){
+    async init_table(){
         const canvas = createCanvas(1301, 718);
         const ctx = canvas.getContext('2d');
         //Load and draw the table image
         const table_image = await loadImage(`./other_images/poker_table_large.png`);
         ctx.drawImage(table_image, 0, 0);
         let ava_size = 128;
-        for (let i = 0; i < players.length; i++){
+        for (let i = 0; i < this._players.length; i++){
             //Load the avatar for this player
-            let img = await loadImage((players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"));
+            let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"));
             //Draw the avatar in the correct position and shape
             ctx.save();
             ctx.beginPath();
@@ -140,7 +140,7 @@ class Table{
             roundRect(ctx,seat_coords[i][0]-ava_size/2,seat_coords[i][1]+ava_size/4,5/4*ava_size,36,15,true);
             ctx.font = 'bold 28px sans-serif';
             ctx.fillStyle = ('black');
-            ctx.fillText((players[i].member.nickname)?players[i].member.nickname:players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
+            ctx.fillText((this._players[i].member.nickname)?this._players[i].member.nickname:this._players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
         }
         return canvas;
     }

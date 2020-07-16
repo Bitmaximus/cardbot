@@ -1,17 +1,13 @@
 const secret = require('./secret.json');
-const asciiTable = require('ascii-table');
 const commandList = require('./command-list.js')
 const utils = require('./utils.js');
-var CronJob = require('cron').CronJob;
 const Discord = require('discord.js');
-const sqlite3 = require('sqlite3').verbose();
-const {Deck} = require('./models/deck.js');
 
 //Initialize Discord client object globally
 global.client = new Discord.Client();
-global.game = null;
+// global.game = null;
 
-client.login(secret.token);	
+client.login(secret.token);
  
 client.on('ready', async function (e) {
 	console.info('Connected');
@@ -60,18 +56,17 @@ function handleAdminCommand(message, params) {
 
 // callback on message
 client.on('message', message => {
-		let channel = message.channel;
-		let messageContent = message.content;		
-
-		/* commands */
-		if (messageContent.startsWith(utils.DEFAULTPREFIX)) {
-      var args = messageContent.split(' ');
-			handleCommand(message, args);
-		}
+	let messageContent = message.content;		
+	
+	/* commands */
+	if (messageContent.startsWith(utils.DEFAULTPREFIX)) {
+      let args = messageContent.split(' ');
+	  handleCommand(message, args);
+	}
 
     /* admin commands */
     if (messageContent.startsWith(utils.ADMINPREFIX)) {
-      var args = messageContent.split(' ');
+      let args = messageContent.split(' ');
       handleAdminCommand(message, args);
     }
 });

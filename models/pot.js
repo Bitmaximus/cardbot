@@ -23,6 +23,10 @@ class Pot{
         return;
     }
 
+    add_contribution(player_id, amount){
+        this._contributions.push([player_id, amount]);
+    }
+
     get contributions() {
         return this._contributions;
     }

@@ -81,7 +81,7 @@ class Round {
         this._board = []; //0|3|4|5 cards on board
         this._hands = []; //Only keep hands of players that remain in the round.
         this._pot = new Pot(); 
-    }
+    } 
 
     deal_hands(){
         for(let player of game.players){
@@ -90,6 +90,8 @@ class Round {
             this._hands.push(new Hand(cards, player.seat_idx));
         }
         game.channel.send("Hands have been dealt to all players. Good luck!").then(msg => game.message = msg);
+        let dealer = game.players[this._dealer_idx-1].member;
+        game.channel.send(`Dealer is ${(dealer.nickname)?dealer.nickname:dealer.user.username}`);
     }
 
     async deal_flop(){
@@ -123,12 +125,15 @@ class Round {
         game.channel.send(hand_results.sort(poker_sort));
     }
 
-    async init_betting_round(){
-        let first_to_act_pre_flop = (game.players.legnth > 2)? this._dealer_idx-3 % game.players.length : this._dealer_idx; 
-        let first_to_act_post_flop = this._dealer_idx-1 % game._players.length;
+    async init_betting_round(id_to_act){
+        let first_actor = game.players[id_to_act-1];
+        game.channel.send(`Action is on ${(first_actor.member.nickname)?first_actor.member.nickname:first_actor.member.user.username}`)
+        this.prompt_bet(first_actor);
     }
 
-    async prompt_bet(player,)
+    async prompt_bet(player){
+        game.channel.send(`Please bet now ${(player.member.nickname)?player.member.nickname:player.member.user.username}`).then(msg => {init_bet_prompt(player, msg, 0, this.pot)})
+    }
 
     advance_state(){    
         if (states.indexOf(this._state) < 5) {
@@ -136,22 +141,27 @@ class Round {
             switch(states.indexOf(this._state)){
                 case 0: 
                     this.deal_hands();
-                    this.init_betting_round();
+                    this.init_betting_round((game.players.legnth > 2)? this._dealer_idx-3 % game.players.length : this._dealer_idx);
+                    break;
                 case 1: 
                     this._pot.collect_bets();
                     this.deal_flop();
-                    this.init_betting_round();
+                    this.init_betting_round(this._dealer_idx-1 % game._players.length);
+                    break;
                 case 2:
                     this._pot.collect_bets();
                     this.deal_turn();
-                    this.init_betting_round();
+                    this.init_betting_round(this._dealer_idx-1 % game._players.length);
+                    break;
                 case 3:
                     this._pot.collect_bets();
                     this.deal_river();
-                    this.init_betting_round();
+                    this.init_betting_round(this._dealer_idx-1 % game._players.length);
+                    break;
                 case 4: 
                     this._pot.collect_bets();
-                    this.start_showdown();  
+                    this.start_showdown();
+                break;
             }
             this._state = states[states.indexOf(this._state)+1];    
         }
@@ -197,5 +207,64 @@ class Round {
         this._hands = value;
     }
 
+    get pot() {
+        return this._pot;
+    }
+
+    set pot(value){
+        this._pot = value;
+    }
+
 }
+
+async function init_bet_prompt(player, msg, current_bet, pot){
+
+    let bet = current_bet;
+    //Bot reacts to the ticket post to allow user to interact with it.
+    await msg.react("↙️").catch(console.error);
+    await msg.react("⬇️").catch(console.error);
+    await msg.react("🆗").catch(console.error);
+    await msg.react("⬆️").catch(console.error);
+    await msg.react("↗️").catch(console.error);
+
+    let confirm_bet = async (bet_amt) => {
+        msg.edit(`${(player.member.nickname)?player.member.nickname:player.member.user.username} bet ${bet_amt}`);
+        pot.add_contribution(player.seat_idx, bet_amt);
+        msg.reactions.removeAll();
+    }
+
+    let collected_cb = async (reaction, user) => {
+        let edit = true;
+        switch(reaction._emoji.name) {
+
+            case('↙️'):
+            bet = bet - Math.round(1 * game.structure.large_blind_levels[0]);
+            break;
+
+            case('⬇️'):
+            bet = bet - Math.round(3 * game.structure.large_blind_levels[0]);
+            break;
+
+            case('🆗'):
+            edit = false;
+            collector.stop();
+            confirm_bet(bet);
+            break;
+
+            case('⬆️'):
+            bet = bet + Math.round(3 * game.structure.large_blind_levels[0]);
+            break;
+
+            case('↗️'):
+            bet = bet + Math.round(1 * game.structure.large_blind_levels[0]);
+            break;
+        }
+        if (edit) await msg.edit(`**__Options:__** ↙️ (-1BB), ⬇️ (-3BB), 🆗 (Confirm Bet), ⬆️ (+3BB), ↗️ (+1BB)\n**__Bet:__** **${bet}chips**`);
+    };
+
+    const collector = await msg.createReactionCollector((reaction, user) => ['↙️','⬇️','🆗','⬆️','↗️'].includes(reaction._emoji.name) && (!user.bot), {dispose: true, time: 120000});
+    collector.on('collect', collected_cb);
+    collector.on('remove', collected_cb);
+}
+
 exports.Round = Round;

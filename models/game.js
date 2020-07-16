@@ -4,6 +4,7 @@ const {Player} = require('./player.js');
 const {Table} = require('./table.js');
 
 class Game{
+    
     constructor(members, structure, channel){
         //Constants
         this._players = members.map((member,idx) => new Player(member, idx+1, structure.starting_stack));
@@ -80,13 +81,12 @@ class Game{
     set channel(value){
         this._channel = value;
     }
-
 }
 
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive 
-  }
+}
 
 exports.Game = Game;

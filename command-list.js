@@ -18,7 +18,7 @@ var commands = {
     'commands': {
 	    description: 'Displays the list of things you can ask of me :)',
 	    parameters: [],
-	    permittedRoles: [],
+	    permittedRoles: [],	
 		help: 'That\'s just silly',
 	    execute: function (message, params) {
 			let response = "```asciidoc\nAvailable Commands \n====================";
@@ -128,7 +128,6 @@ var commands = {
 			Cards left in deck: ${game.deck.cards.length}
 			Board state: ${game.round.board.map(card => card.toString()).join(', ')}
 			Hands: ${game.round.hands.map(hand => hand.toString()).join(', ')}
-			Best hand: ${utils.eval_best_hand(game.round.board)}
 			`);						
 			message.delete();
 		}

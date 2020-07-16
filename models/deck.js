@@ -11,7 +11,7 @@ class Deck {
         this._cards = my_cards;
         this._ini_cards = my_cards;
     }
-  
+
     get cards() {
         return this._cards;
     }
@@ -57,4 +57,4 @@ function getRandomIntInclusive(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive 
 }
 
-  exports.Deck = Deck;
+exports.Deck = Deck;
