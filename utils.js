@@ -88,7 +88,7 @@ function start_game(message){
 				let members = [];
 				for (let i = 0; i < users.length; i++) {members.push(await message.guild.members.fetch(users[i]))}
 				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack),message.channel);
-				await message.channel.send("The game has begun!", new Discord.MessageAttachment(await game.table.init_table().then(canvas => canvas.toBuffer()), 'table.png'));
+				await message.channel.send("The game has begun!", new Discord.MessageAttachment(await game.table.graphic.then(canvas => canvas.toBuffer()), 'table.png'));
 				game.round.advance_state();
 			});
 		}
@@ -103,10 +103,6 @@ module.exports = {
 	getRoleId,
 	hasRole,
 	isPermitted,
-	eval_dupes,
-	check_flush,
-	check_straights,
-	eval_best_hand,
 	display_horizontal,
 	genSimpleMsg,
 	start_game

@@ -5,7 +5,6 @@ const Discord = require('discord.js');
 
 //Initialize Discord client object globally
 global.client = new Discord.Client();
-// global.game = null;
 
 client.login(secret.token);
  

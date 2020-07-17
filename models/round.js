@@ -76,7 +76,7 @@ let poker_sort = (a,b) => {
 class Round {   
     constructor(number, dealer_idx){
         this._number = number;
-        this._dealer_idx = dealer_idx 
+        this._dealer_idx = dealer_idx
         this._state = states[0]; //See 'states' array
         this._board = []; //0|3|4|5 cards on board
         this._hands = []; //Only keep hands of players that remain in the round.
@@ -128,11 +128,38 @@ class Round {
     async init_betting_round(id_to_act){
         let first_actor = game.players[id_to_act-1];
         game.channel.send(`Action is on ${(first_actor.member.nickname)?first_actor.member.nickname:first_actor.member.user.username}`)
-        this.prompt_bet(first_actor);
+        this.prompt_for_action(first_actor).then();
     }
 
-    async prompt_bet(player){
-        game.channel.send(`Please bet now ${(player.member.nickname)?player.member.nickname:player.member.user.username}`).then(msg => {init_bet_prompt(player, msg, 0, this.pot)})
+    async prompt_for_action(player, current_bet, pot){
+        game.channel.send(`Please bet now ${(player.member.nickname)?player.member.nickname:player.member.user.username}`).then(async (msg) => {
+            //Bot reacts to the message to allow user to pick an action
+        msg.react("🆙").catch(console.error);
+        msg.react("☑️").catch(console.error);
+        msg.react("📁").catch(console.error);
+
+        const action_collector = await msg.createReactionCollector((reaction, user) => ['🆙','☑️','📁'].includes(reaction._emoji.name) && (!user.bot), {time: 60000});
+        
+        let action_cb = async (reaction) => {
+            msg.reactions.removeAll();
+            switch(reaction._emoji.name) {
+
+                case('🆙'):
+                break;
+
+                case('☑️'):
+                break;
+
+                case('📁'):
+                break;
+            }
+        };
+
+        action_collector.on('collect', action_cb);
+
+        }
+        )
+
     }
 
     advance_state(){    
@@ -217,54 +244,5 @@ class Round {
 
 }
 
-async function init_bet_prompt(player, msg, current_bet, pot){
-
-    let bet = current_bet;
-    //Bot reacts to the ticket post to allow user to interact with it.
-    await msg.react("↙️").catch(console.error);
-    await msg.react("⬇️").catch(console.error);
-    await msg.react("🆗").catch(console.error);
-    await msg.react("⬆️").catch(console.error);
-    await msg.react("↗️").catch(console.error);
-
-    let confirm_bet = async (bet_amt) => {
-        msg.edit(`${(player.member.nickname)?player.member.nickname:player.member.user.username} bet ${bet_amt}`);
-        pot.add_contribution(player.seat_idx, bet_amt);
-        msg.reactions.removeAll();
-    }
-
-    let collected_cb = async (reaction, user) => {
-        let edit = true;
-        switch(reaction._emoji.name) {
-
-            case('↙️'):
-            bet = bet - Math.round(1 * game.structure.large_blind_levels[0]);
-            break;
-
-            case('⬇️'):
-            bet = bet - Math.round(3 * game.structure.large_blind_levels[0]);
-            break;
-
-            case('🆗'):
-            edit = false;
-            collector.stop();
-            confirm_bet(bet);
-            break;
-
-            case('⬆️'):
-            bet = bet + Math.round(3 * game.structure.large_blind_levels[0]);
-            break;
-
-            case('↗️'):
-            bet = bet + Math.round(1 * game.structure.large_blind_levels[0]);
-            break;
-        }
-        if (edit) await msg.edit(`**__Options:__** ↙️ (-1BB), ⬇️ (-3BB), 🆗 (Confirm Bet), ⬆️ (+3BB), ↗️ (+1BB)\n**__Bet:__** **${bet}chips**`);
-    };
-
-    const collector = await msg.createReactionCollector((reaction, user) => ['↙️','⬇️','🆗','⬆️','↗️'].includes(reaction._emoji.name) && (!user.bot), {dispose: true, time: 120000});
-    collector.on('collect', collected_cb);
-    collector.on('remove', collected_cb);
-}
 
 exports.Round = Round;

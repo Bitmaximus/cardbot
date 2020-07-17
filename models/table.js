@@ -25,7 +25,7 @@ const card_coords = [
   //Turn
   [719,259],
   //River
-  [865,259],
+  [865,259]
 ]
 
 const pot_coords = [
@@ -38,7 +38,7 @@ const pot_coords = [
   //Side 3
   [436,455],
   //Side 4
-  [290,455],
+  [290,455]
 ]
 
 const pending_bet_coords = [
@@ -146,6 +146,14 @@ class Table{
     }
 
     reset(){this._graphic = this._initial_graphic;}
+
+    get graphic(){
+      return this._graphic;
+    }
+
+    set graphic(value){
+      this._graphic = value;
+    }
 
 }
 
