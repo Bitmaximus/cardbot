@@ -7,7 +7,7 @@ const {createCanvas, loadImage} = require('canvas');
 
 const RED = "RED";
 const GREEN = "GREEN";
-const BLUE = 3447003; 
+const BLUE = 3447003;
 const YELLOW = "#dde61a";
 const bot_id = '727656097195884615';
 
@@ -38,7 +38,7 @@ function isPermitted(member, roles) {
 		return true;
 
 	for (var i = 0; i < roles.length; i++) {
-		if (hasRole(member, roles[i]))	
+		if (hasRole(member, roles[i]))
 			return true;
 	}
 	return false;
@@ -103,10 +103,6 @@ module.exports = {
 	getRoleId,
 	hasRole,
 	isPermitted,
-	eval_dupes,
-	check_flush,
-	check_straights,
-	eval_best_hand,
 	display_horizontal,
 	genSimpleMsg,
 	start_game
