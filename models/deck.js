@@ -12,13 +12,9 @@ class Deck {
         this._ini_cards = my_cards;
     }
 
-    get cards() {
-        return this._cards;
-    }
+    get cards() {return this._cards}
 
-    set cards(value) {
-        this._cards = value;
-    }
+    set cards(value) {this._cards = value}
 
     reset() {
         this._cards = this._ini_cards;
@@ -36,7 +32,7 @@ class Deck {
         }
         return drawn_cards;
     }
-
+    //Don't forget to remove this lol >>>
     cheat(idx) {
         if (idx<0 || idx>51) return;
         var drawn_cards = [];
@@ -48,8 +44,7 @@ class Deck {
     toString() {
         return (this._cards).map(x => x.toString());
     }
-
-  }
+}
 
 function getRandomIntInclusive(min, max) {
 	min = Math.ceil(min);

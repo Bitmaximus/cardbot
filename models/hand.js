@@ -15,25 +15,13 @@ class Hand{
         return result;
     }
 
-    toString() {
-        return `(${this._cards.map(card => card.toString()).join(", ")})`;
-    }
+    toString(){return `(${this._cards.map(card => card.toString()).join(", ")})`}
 
-    get cards() {
-        return this._cards;
-    }
+    get cards(){return this._cards}
+    set cards(value){this._cards = value}
 
-    set cards(value){
-        this._cards = value;
-    }
-
-    get owner() {
-        return this._owner;
-    }
-
-    set owner(value){
-        this._owner = value;
-    }
+    get owner(){return this._owner}
+    set owner(value){ this._owner = value}
 }
 
 const suit_name_list = {

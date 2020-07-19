@@ -26,61 +26,26 @@ class Game{
         this._round.advance_state();
     }
 
-    get players(){
-        return this._players;
-    }
+    get players(){return this._players}
+    set players(players){this._players = players}
 
-    set players(players){
-        this._players = players;
-    }
+    get structure(){return this._structure}
+    set structure(value){this._structure = value}
 
-    get structure() {
-        return this._structure;
-    }
+    get round(){return this._round}
+    set round(value){this._round = value}
 
-    set structure(value){
-        this._structure = value;
-    }
+    get table(){return this._table}
+    set table(value){this._table = value}
 
-    get round() {
-        return this._round;
-    }
+    get deck(){return this._deck}
+    set deck(value){this._deck = value}
 
-    set round(value){
-        this._round = value;
-    }
+    get message(){return this._message}
+    set message(value){this._message = value}
 
-    get table() {
-        return this._table;
-    }
-
-    set table(value){
-        this._table = value;
-    }
-
-    get deck() {
-        return this._deck;
-    }
-
-    set deck(value){
-        this._deck = value;
-    }
-
-    get message() {
-        return this._message;
-    }
-
-    set message(value){
-        this._message = value;
-    }
-
-    get channel() {
-        return this._channel;
-    }
-
-    set channel(value){
-        this._channel = value;
-    }
+    get channel(){return this._channel}
+    set channel(value){this._channel = value}
 }
 
 function getRandomIntInclusive(min, max) {

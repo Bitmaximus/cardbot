@@ -27,21 +27,11 @@ class Pot{
         this._contributions.push([player_id, amount]);
     }
 
-    get contributions() {
-        return this._contributions;
-    }
+    get contributions(){return this._contributions}
+    set contributions(value){this._contributions = value}
 
-    set contributions(value){
-        this._contributions = value;
-    }
-
-    get pending_contributions() {
-        return this._pending_contributions;
-    }
-
-    set pending_contributions(value){
-        this._pending_contributions = value;
-    }
+    get pending_contributions() {return this._pending_contributions}
+    set pending_contributions(value){this._pending_contributions = value}
 }
 
 exports.Pot = Pot;
