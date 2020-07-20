@@ -10,6 +10,17 @@ class Move{
 
     get amount(){return this._amount}
     set amount(value){this._amount = value}
+
+    toString() {switch(this._action_type){
+        case ("Bet"):
+            return ;
+        case ("Raise"):
+            return;
+        case ("Check"):
+            return;
+        case ("Fold"):
+            return;
+    }}
 }
 
 const action_types = [
