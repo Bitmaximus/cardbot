@@ -11,39 +11,41 @@ class Round {
         this._state = states[0]; //See 'states' array
         this._board = []; //0|3|4|5 cards on board
         this._hands = []; //Only keep hands of players that remain in the round.
-        this._pot = new Pot(); 
+        this._hand_history = [];
+        this._pot = new Pot();
     } 
 
-    deal_hands(){
+    async deal_hands(){
         for(let player of game.players){
             let cards = game.deck.pick(2,"Hand");
             player.send_hand(cards, this._number);
             this._hands.push(new Hand(cards, player.seat_idx));
         }
-        game.channel.send("Hands have been dealt to all players. Good luck!").then(msg => game.message = msg);
-        let dealer = game.players[this._dealer_idx-1].member;
-        game.channel.send(`Dealer is ${(dealer.nickname)?dealer.nickname:dealer.user.username}`);
+        await game.channel.send(`__**Hand#${this._number}\n**__Hands have been dealt to all players. Good luck!`).then(msg => game.message = msg);
+        let dealer = game.players[this._dealer_idx-1];
+        game.channel.send(`Dealer is ${dealer.nick_or_name()}`);
     }
 
     async deal_flop(){
         game.deck.pick(1,"Muck");
         for(let card of game.deck.pick(3,"Flop")) this._board.push(card);
         await game.message.delete();
-        game.channel.send(`**__Here comes the flop!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+        await game.channel.send(`**__Here comes the flop!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+        //await game.channel.send(`**__Here comes the flop!__**`, await game.table.draw_cards(this._board)).then(msg => game.message = msg).catch(game.end_game());
     }
 
     async deal_turn(){
         game.deck.pick(1,"Muck");
         this._board.push(game.deck.pick(1,"Turn")[0]);
         await game.message.delete();
-        game.channel.send(`**__Burn and TURN baby!!!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+        await game.channel.send(`**__Burn and TURN baby!!!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
     }
 
     async deal_river(){
         game.deck.pick(1,"Muck");
         this._board.push(game.deck.pick(1,"River")[0]);
         await game.message.delete();
-        game.channel.send(`**__This is it, the river!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+        await game.channel.send(`**__This is it, the river!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
     }
 
     async start_showdown(){
@@ -51,52 +53,57 @@ class Round {
         for (let i = 0; i<this._hands.length; i++) hand_results.push(this._hands[i].evaluate(this._board));
         for (let i = 0; i<this._hands.length; i++){
             let player = game.players[this._hands[i].owner-1];    
-            game.channel.send(`${(player.member.nickname)? player.member.nickname : player.member.user.username} holding ${this._hands[i].toString()} has: ${hand_results[i]}\n`)
+            game.channel.send(`${player.nick_or_name()} holding ${this._hands[i].toString()} has: ${hand_results[i]}\n`)
         }
         game.channel.send(hand_results.sort(poker_sort));
     }
 
-    async init_betting_round(id_to_act){
-        this.next_player(id_to_act);
-        // game.channel.send(`Action is on ${(first_actor.member.nickname)?first_actor.member.nickname:first_actor.member.user.username}`)
+    async advance_betting_round(id_to_act){
+        console.log(id_to_act);
+        game.players[id_to_act].prompt_move().then((move) => {this.onPlayerMove(id_to_act, move)});
+    }
+    // game.channel.send(`Action is on ${(first_actor.member.nickname)?first_actor.member.nickname:first_actor.member.user.username}`)
+    // while (all player responses != check || fold && bets_not_equal && player_action_completed.size == players.size)
+
+    onPlayerMove(actor_id, move){
+        game.channel.send(`**${move}**`);
+        this._hand_history.push(move);
+        if (this.should_end_betting_round()) {this.advance_state();
+            this.hand_history = [];}
+        else this.advance_betting_round(actor_id-1 % game.players.length);
     }
 
-    next_player(id){
-        let first_actor = game.players[id-1];
-        first_actor.prompt_move().then((response) => console.log(response));
+    should_end_betting_round(){
+        return (this._hand_history.length >= game.players.length);
     }
 
-    onPlayerMove(player_id, move){
-
-    }
-
-    advance_state(){    
+    async advance_state(){
         if (states.indexOf(this._state) < 5) {
-            
-            switch(states.indexOf(this._state)){
-                case 0: 
-                    this.deal_hands();
-                    this.init_betting_round((game.players.legnth > 2)? this._dealer_idx-3 % game.players.length : this._dealer_idx);
+            switch(this._state){
+                case "PRE-FLOP":
+                    await this.deal_hands();
+                    this.advance_betting_round((game.players.length > 2)? this._dealer_idx-3 % game.players.length : this._dealer_idx-1);
                     break;
-                case 1: 
+                case "FLOP": 
                     this._pot.collect_bets();
-                    this.deal_flop();
-                    this.init_betting_round(this._dealer_idx-1 % game._players.length);
+                    await this.deal_flop();
+                    this.advance_betting_round((game.players.length > 2)? this._dealer_idx-1 % game.players.length : this._dealer_idx-1);
                     break;
-                case 2:
+                case "TURN":
                     this._pot.collect_bets();
-                    this.deal_turn();
-                    this.init_betting_round(this._dealer_idx-1 % game._players.length);
+                    await this.deal_turn();
+                    this.advance_betting_round((game.players.length > 2)? this._dealer_idx-1 % game.players.length : this._dealer_idx-1);
                     break;
-                case 3:
+                case "RIVER":
                     this._pot.collect_bets();
-                    this.deal_river();
-                    this.init_betting_round(this._dealer_idx-1 % game._players.length);
+                    await this.deal_river();
+                    this.advance_betting_round((game.players.length > 2)? this._dealer_idx-1 % game.players.length : this._dealer_idx-1);
                     break;
-                case 4: 
+                case "SHOW-DOWN": 
                     this._pot.collect_bets();
-                    this.start_showdown();
-                break;
+                    await this.start_showdown();
+                    game.start_new_round();
+                    break;
             }
             this._state = states[states.indexOf(this._state)+1];    
         }
@@ -117,12 +124,14 @@ class Round {
     get hands(){return this._hands}
     set hands(value){this._hands = value}
 
+    get hand_history(){return this._hand_history}
+    set hand_history(value){this._hand_history = value}
+
     get pot(){return this._pot}
     set pot(value){this._pot = value}
 }
 
 const states = [
-    "INITIALIZED",
 	"PRE-FLOP",
 	"FLOP",
 	"TURN",

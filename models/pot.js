@@ -1,7 +1,7 @@
 class Pot{
     constructor(){
-        this._pending_contributions = [];
-        this._contributions = [];
+        this._pending_contributions = [];  // Player:Bet 
+        this._contributions = []; // Player:Total_Bets
     }
 
     are_bets_matched(){

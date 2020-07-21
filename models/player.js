@@ -1,5 +1,7 @@
 const {createCanvas, loadImage} = require('canvas');
 const Discord = require('discord.js');
+const {Move} = require('./move.js');
+
 
 class Player {
     constructor(member, seat_idx, stack){
@@ -14,50 +16,55 @@ class Player {
 
     async prompt_move(){
         return new Promise(resolve => {
-            game.channel.send(`Please choose an action ${(this._member.nickname)?this._member.nickname:this._member.user.username}`)
+            game.channel.send(`Please choose an action ${this.nick_or_name()}`)
             .then(async (msg) => {
-                msg.react("🆙").catch(console.error);
-                msg.react("☑️").catch(console.error);
-                msg.react("📁").catch(console.error);
+                await msg.react("🆙").catch(console.error);
+                await msg.react("☑️").catch(console.error);
+                await msg.react("📁").catch(console.error);
 
-                const action_collector = msg.createReactionCollector((reaction, user) => ['🆙','☑️','📁'].includes(reaction._emoji.name) && (!user.bot), {max: 1, time: 60000});
+                const action_collector = msg.createReactionCollector((reaction, user) => 
+                {
+                    if (!user.bot && (user.id != this._member.user.id)) reaction.users.remove(user);
+                    return ['🆙','☑️','📁'].includes(reaction._emoji.name) && (user.id == this._member.user.id)
+                }, {max: 1, time: 60000});
                 
                 //What we do when the player picks an action
-                action_collector.on('end', async (reactions) => {
+                action_collector.on('end', async (reactions,reason) => {
                     msg.delete() //Player has made a choice, we don't need to display choices now.
+                    if (reason === 'time') {
+                        game.channel.send(`***${this.nick_or_name()} did not act in time!***`);
+                        resolve(new Move("Fold", this, null)); 
+                        return;}
                     switch(reactions.first()._emoji.name) {
                         //Player Bet
                         case('🆙'):
                             game.channel.send("__Please type your numerical bet below...__"); 
-                            const sizing_collector = game.channel.createMessageCollector(m => m.author.id == this._member.id, { max: 1, time: 60000 });
+                            const sizing_collector = game.channel.createMessageCollector(m => (m.author.id == this._member.user.id), { max: 1, time: 60000 });
                             //What we do when player specifies a bet size
                             sizing_collector.on('end', async (msgs) => {
-                                msg.delete();
                                 msgs.first().delete();
-                                game.channel.send(`**${(this._member.nickname)?this._member.nickname:this._member.user.username} bets ${msgs.first().content} chips**`);
-                                resolve({'action' : 'Bet', 'amount' : msgs.first().content});
+                                resolve(new Move("Bet", this, msgs.first().content));
                             });
                         break;
 
                         //Player Checked
                         case('☑️'):
-                            msg.delete();
-                            game.channel.send(`**${(this._member.nickname)?this._member.nickname:this._member.user.username} checks**`);
-                            resolve({'action' : 'Check', 'amount' : null})
+                            resolve(new Move("Check", this, null))
                         break;
 
                         //Player Folded
                         case('📁'):
-                            msg.delete();
-                            game.channel.send(`**${(this._member.nickname)?this._member.nickname:this._member.user.username} folds**`);
-                            resolve({'action' : 'Fold', 'amount' : null})
+                            resolve(new Move("Fold", this, null))
                         break;
 
                     }
+
                 });
             })
         })
     }
+
+    nick_or_name() {return(this._member.nickname)? this._member.nickname : this._member.user.username};
 
     toString() {return (JSON.stringify(this))}
     
@@ -69,6 +76,9 @@ class Player {
 
     get stack(){return this._stack}
     set stack(value){this._stack = value}
+
+    get is_dealer(){return this._is_dealer}
+    set is_dealer(value){this._is_dealer = value}
 }
 
 async function display_horizontal(cards) {

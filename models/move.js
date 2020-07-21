@@ -1,33 +1,29 @@
 class Move{
-    constructor(action_id, amount){
-        this._action_type = action_types[action_id];
+    constructor(action_type, actor, amount){
+        this._action_type = action_type;
+        this._actor = actor;
         this._amount = amount;
     }
 
     get action_type(){return this._action_type}
-    //action_type is int idx {0,3}. See action_types above.
-    set action_type(value){this._action_type = action_types[action_id]}
+    set action_type(value){this._action_type = value}
+
+    get actor(){return this._actor}
+    set actor(value){this._actor = value}
 
     get amount(){return this._amount}
     set amount(value){this._amount = value}
 
     toString() {switch(this._action_type){
         case ("Bet"):
-            return ;
+            return `${this._actor.nick_or_name()} bet ${this._amount}`;
         case ("Raise"):
-            return;
+            return `${this._actor.nick_or_name()} raised ${this._amount}`;
         case ("Check"):
-            return;
+            return `${this._actor.nick_or_name()} checked`;
         case ("Fold"):
-            return;
+            return `${this._actor.nick_or_name()} folded`;
     }}
 }
-
-const action_types = [
-    "Bet",
-    "Raise",
-    "Check",
-    "Fold"
-]
 
 exports.Move = Move;

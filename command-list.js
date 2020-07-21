@@ -82,12 +82,13 @@ var commands = {
 
 	'start': {
 		description: 'Starts a game',
-		parameters: [],
+		parameters: ["max_players"],
 		require: [],
 		help: '**Example Use**: `' + utils.DEFAULTPREFIX + 'start`',
 		permittedRoles: [],
 		execute: function (message, params) {
-			utils.start_game(message);
+			console.log(params);
+			utils.start_game(message, (params.args.length>1)? params.args[1]:1);
 		}
 	},
 
