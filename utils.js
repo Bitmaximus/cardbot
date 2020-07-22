@@ -77,11 +77,11 @@ function genSimpleMsg(title,message){
 	return embed;
 }
 
-function start_game(message){
+function start_game(message, max_players){
 	message.channel.send("React to enter the tournament").then(
 		async (msg) => {
 			await msg.react('▶️').catch(console.error);
-			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), { max: 1, time: 500000});
+			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), { max: max_players, time: 500000});
 			
 			collector.on('end', async (collected) => {
 				let users = Array.from(collected.get('▶️').users.cache.values()).filter(user => user.id != bot_id);
@@ -90,6 +90,7 @@ function start_game(message){
 				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack),message.channel);
 				await message.channel.send("The game has begun!", new Discord.MessageAttachment(await game.table.graphic.then(canvas => canvas.toBuffer()), 'table.png'));
 				game.round.advance_state();
+				console.log(game.players);
 			});
 		}
 	)

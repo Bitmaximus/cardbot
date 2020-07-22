@@ -19,30 +19,14 @@ class HandResult{
         }
     }
 
-    get type() {
-        return this._type;
-    }
+    get type() {return this._type}
+    set type(value) {this._type = value}
 
-    set type(value) {
-        this._type = value;
-    }
+    get quality() {return this._quality}
+    set quality(value) {this._quality = value}
 
-    get quality() {
-        return this._quality;
-    }
-
-    set quality(value) {
-        this._quality = value;
-    }
-
-    get kickers() {
-        return this._kickers;
-    }
-
-    set kickers(value) {
-        this._kickers = value;
-    }
-
+    get kickers() {return this._kickers}
+    set kickers(value) {this._kickers = value}
 }
 
 const card_name_list = {

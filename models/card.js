@@ -11,45 +11,21 @@ class Card {
         else this._valid = false
     }
 
-    get id(){
-        return this._id;
-    }
+    get id(){return this._id;}
+    //We don't want setter
+    set id(id){return}
 
-    set id(id){
-        return;
-    }
+    get suit() {return this._suit}
+    set suit(value){this._suit = value}
 
-    get suit() {
-        return this._suit;
-    }
+    get rank() {return this._rank}
+    set rank(value){this._rank = value}
 
-    set suit(value){
-        this._suit = value;
-    }
-
-    get rank() {
-        return this._rank;
-    }
-
-    set rank(value){
-        this._rank = value;
-    }
-
-    get location(){
-        return this._location;
-    }
-
-    set location(value){
-        this._location = value;
-    }
-
-    get visible() {
-        return this._visible;
-    }
-
-    set visible(value){
-        this._visible = value;
-    }
+    get location(){return this._location}
+    set location(value){this._location = value}
+    
+    get visible() {return this._visible}
+    set visible(value){this._visible = value}
 
     toString() {
         return this.rank.name + this.suit.emoji;
