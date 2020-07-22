@@ -26,6 +26,17 @@ class Game{
         this._round.advance_state();
     }
 
+	// end the game
+    end(reason){
+		console.log(reason);
+		
+		// clean up messages
+
+		//end the game
+		process.exit(1);
+		
+    }
+
     get players(){return this._players}
     set players(players){this._players = players}
 

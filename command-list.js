@@ -87,7 +87,6 @@ var commands = {
 		help: '**Example Use**: `' + utils.DEFAULTPREFIX + 'start`',
 		permittedRoles: [],
 		execute: function (message, params) {
-			console.log(params);
 			utils.start_game(message, (params.args.length>1)? params.args[1]:1);
 		}
 	},

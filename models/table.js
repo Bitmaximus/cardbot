@@ -6,6 +6,7 @@ class Table{
         this._initial_graphic = this.init_table();
         this._graphic = this._initial_graphic;
         this._cards_drawn = 0;
+        this._message = null;
     }
 
     async init_table(){
@@ -35,43 +36,54 @@ class Table{
         return canvas;
     }
 
+    // params: array of card objects
+    // description: adds images of the face-up cards (the board) to the table
+    // returns: the canvas object.
+    // throws an error if: the image fails to load.
     async draw_cards(cards){
-      //const ctx = canvas.getContext('2d');
-      for (card of cards) {
-        // draw card
-        const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`)
-                                 .catch((err) => {console.log("The image failed to load."); console.error(err);}); /* fail to load image handling */
-        //ctx.drawImage(card_image, 135*i, 0);
+		const ctx = this._graphic.getContext('2d');
+		// start drawing cards at the first undrawn card.
+		for (let i = this._cards_drawn; i < cards.length(); i++) {
+			const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`)
+									.catch((err) => {
+														console.log(`table.draw_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
+														throw err;
+													});
+			ctx.drawImage(card_image, card_coords[i][0], card_coords[i][1], 10, 20);
+			this._cards_drawn++;
+		}
 
-        //manipulate this._graphic which is a canvas object
-        this._cards_drawn++;
-      }
-        
+		return this._graphic;
+    }
 
-        // const canvas = createCanvas(1301, 718);
-        // const ctx = canvas.getContext('2d');
-        // //Load and draw the table image
-        // const table_image = await loadImage(`./other_images/poker_table_large.png`);
-        // ctx.drawImage(table_image, 0, 0);
-        // let ava_size = 128;
-        // for (let i = 0; i < this._players.length; i++){
-        //     //Load the avatar for this player
-        //     let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"));
-        //     //Draw the avatar in the correct position and shape
-        //     ctx.save();
-        //     ctx.beginPath();
-        //     ctx.arc(seat_coords[i][0], seat_coords[i][1], ava_size/2, 0, Math.PI * 2);
-        //     ctx.clip();
-        //     ctx.drawImage(img, seat_coords[i][0]-ava_size/2, seat_coords[i][1]-ava_size/2, ava_size, ava_size);
-        //     ctx.restore();
-        //     //Add nickname
-        //     ctx.fillStyle = ('rgb(194,193,190');
-        //     roundRect(ctx,seat_coords[i][0]-ava_size/2,seat_coords[i][1]+ava_size/4,5/4*ava_size,36,15,true);
-        //     ctx.font = 'bold 28px sans-serif';
-        //     ctx.fillStyle = ('black');
-        //     ctx.fillText((this._players[i].member.nickname)?this._players[i].member.nickname:this._players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
-        // }
+    // params: channel, [message (optional)]
+    // description: posts the current table graphic as a message to the given channel, with an optional header message.
+    // returns: null
+    // throws an error if: unable to send message
+    async print_table(channel, message){
+		const Discord = require('discord.js');
 
+		// delete previous table if it exists
+		if (this._message != null) {
+			await this._message.delete()
+							   .catch(console.error);  // non-fatal error.
+		}
+
+    	if (message != undefined) {
+    		await this._graphic.then(channel.send(message, new Discord.MessageAttachment(this._graphic.toBuffer(), 'table.png'))
+                    						.then(msg => this._message = msg)
+                    	 					.catch((err) => {
+                                    			console.log();
+                                    			throw err;
+                                    	 	}));
+    	} else {
+        	await this._graphic.then(channel.send(new Discord.MessageAttachment(this._graphic.toBuffer(), 'table.png'))
+                    		   .then(msg => this._message = msg)
+                    		   .catch((err) => {
+                                	console.log();
+                                    throw err;
+                                }));
+    	}
     }
 
     reset(){this._graphic = this._initial_graphic;}

@@ -88,7 +88,11 @@ function start_game(message, max_players){
 				let members = [];
 				for (let i = 0; i < users.length; i++) {members.push(await message.guild.members.fetch(users[i]))}
 				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack),message.channel);
-				await message.channel.send("The game has begun!", new Discord.MessageAttachment(await game.table.graphic.then(canvas => canvas.toBuffer()), 'table.png'));
+				await game.table.print_table(message.channel, "The game has begun!")
+								.catch((err) => {
+													console.log("start_game(): Unable to print table.");
+													game.end(err);
+												});
 				game.round.advance_state();
 				console.log(game.players);
 			});

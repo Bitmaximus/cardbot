@@ -27,11 +27,26 @@ class Round {
     }
 
     async deal_flop(){
+        // select new cards and draw them to the table.
         game.deck.pick(1,"Muck");
         for(let card of game.deck.pick(3,"Flop")) this._board.push(card);
-        await game.message.delete();
-        await game.channel.send(`**__Here comes the flop!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
-        //await game.channel.send(`**__Here comes the flop!__**`, await game.table.draw_cards(this._board)).then(msg => game.message = msg).catch(game.end_game());
+        await game.table.draw_cards(this._board)
+                        .catch((err) => game.end(err));
+
+        // announce the flop and print the new table.
+        await game.message.delete()
+                          .catch(console.error);  // non-fatal error.
+        await game.channel.send(`**__Here comes the flop!__**`)
+                          .then(msg => game.message = msg)
+                          .catch((err) => {
+                                            console.log("round.deal_flop(): Failed to announce the flop.");
+                                            console.error(err);
+                                          }); // non-fatal error.
+        await game.table.print_table(game.channel)
+                        .catch((err) => {
+                                            console.log("round.deal_flop(): Failed to print table.");
+                                            game.end(err);
+                                        }); // fatal error
     }
 
     async deal_turn(){
