@@ -32,7 +32,7 @@ class Table{
             ctx.font = 'bold 28px sans-serif';
             ctx.fillStyle = ('black');
             ctx.fillText((this._players[i].member.nickname)?this._players[i].member.nickname:this._players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
-        }
+		}
         return canvas;
     }
 
@@ -41,15 +41,16 @@ class Table{
     // returns: the canvas object.
     // throws an error if: the image fails to load.
     async draw_cards(cards){
-		const ctx = this._graphic.getContext('2d');
+		//console.log(this._graphic);
+		const ctx = await this._graphic.then((canvas) => canvas.getContext('2d'));
 		// start drawing cards at the first undrawn card.
-		for (let i = this._cards_drawn; i < cards.length(); i++) {
+		for (let i = this._cards_drawn; i < cards.length; i++) {
 			const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`)
 									.catch((err) => {
-														console.log(`table.draw_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
-														throw err;
-													});
-			ctx.drawImage(card_image, card_coords[i][0], card_coords[i][1], 10, 20);
+										console.log(`table.draw_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
+										throw err;
+									});
+			ctx.drawImage(card_image, card_coords[i][0], card_coords[i][1], 130, 186);
 			this._cards_drawn++;
 		}
 
@@ -63,30 +64,34 @@ class Table{
     async print_table(channel, message){
 		const Discord = require('discord.js');
 
-		// delete previous table if it exists
+		// delete previous table message if it exists
 		if (this._message != null) {
 			await this._message.delete()
 							   .catch(console.error);  // non-fatal error.
 		}
 
+		// send a new table message
     	if (message != undefined) {
-    		await this._graphic.then(channel.send(message, new Discord.MessageAttachment(this._graphic.toBuffer(), 'table.png'))
-                    						.then(msg => this._message = msg)
-                    	 					.catch((err) => {
-                                    			console.log();
-                                    			throw err;
-                                    	 	}));
+    		await channel.send(message, new Discord.MessageAttachment(await this._graphic.then((g) => g.toBuffer()), 'table.png'))
+                    	 .then(msg => this._message = msg)
+                    	 .catch((err) => {
+                            console.log("table.print_table(): Failed to send message.");
+                            throw err;
+                         });
     	} else {
-        	await this._graphic.then(channel.send(new Discord.MessageAttachment(this._graphic.toBuffer(), 'table.png'))
-                    		   .then(msg => this._message = msg)
-                    		   .catch((err) => {
-                                	console.log();
-                                    throw err;
-                                }));
+        	await channel.send(new Discord.MessageAttachment(await this._graphic.then((g) => g.toBuffer()), 'table.png'))
+                    	 .then(msg => {this._message = msg})
+                    	 .catch((err) => {
+                            console.log();
+                            throw err;
+                         });
     	}
     }
 
-    reset(){this._graphic = this._initial_graphic;}
+	reset(){
+		this._graphic = this._initial_graphic;
+		this._cards_drawn = 0;
+	}
 
     get graphic(){return this._graphic}
     set graphic(value){this._graphic = value}
@@ -163,16 +168,15 @@ const seat_coords = [
   [71,214]
 ]
 
-//Not yet implemented
 const card_coords = [
   //Flop
   [290,259],
   [430,259],
-  [572,259],
+  [570,259],
   //Turn
-  [719,259],
+  [710,259],
   //River
-  [865,259]
+  [850,259]
 ]
 
 //Not yet implemented

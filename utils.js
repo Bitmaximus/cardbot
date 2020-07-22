@@ -94,7 +94,6 @@ function start_game(message, max_players){
 													game.end(err);
 												});
 				game.round.advance_state();
-				console.log(game.players);
 			});
 		}
 	)
