@@ -2,6 +2,7 @@ const {Pot} = require('./pot.js');
 const {Hand} = require('./hand.js');
 const {createCanvas, loadImage} = require('canvas');
 const Discord = require('discord.js');
+const {functionName} = require('../functionName.js');
 
 class Round {   
     constructor(number, dealer_idx){
@@ -27,25 +28,55 @@ class Round {
     }
 
     async deal_flop(){
+        // select new cards and draw them to the table.
         game.deck.pick(1,"Muck");
         for(let card of game.deck.pick(3,"Flop")) this._board.push(card);
-        await game.message.delete();
-        await game.channel.send(`**__Here comes the flop!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
-        //await game.channel.send(`**__Here comes the flop!__**`, await game.table.draw_cards(this._board)).then(msg => game.message = msg).catch(game.end_game());
+        await game.table.draw_cards(this._board)
+                        .catch((err) => game.end(err));
+
+        // announce the flop and print the new table.
+        // await game.message.delete()
+        //                   .catch(console.error);  // non-fatal error.
+		// await game.channel.send(`**__Here comes the flop!__**`, await display_horizontal(this._board)
+		// 																.catch(console.error))
+        //                   .then(msg => game.message = msg)
+        //                   .catch((err) => {
+        //                     	console.log("round.deal_flop(): Failed to announce the flop.");
+        //                    		console.error(err);
+		//                    }); // non-fatal error.
+        await game.table.print_table(game.channel, `**__Here comes the flop!__**`)
+                        .catch((err) => {
+                        	console.log(`${console.log(functionName())}: Failed to print table.`);
+                            game.end(err);
+                        }); // fatal error
     }
 
     async deal_turn(){
         game.deck.pick(1,"Muck");
-        this._board.push(game.deck.pick(1,"Turn")[0]);
-        await game.message.delete();
-        await game.channel.send(`**__Burn and TURN baby!!!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+		this._board.push(game.deck.pick(1,"Turn")[0]);
+		await game.table.draw_cards(this._board)
+                        .catch((err) => game.end(err));
+        // await game.message.delete();
+		// await game.channel.send(`**__Burn and TURN baby!!!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+		await game.table.print_table(game.channel, `**__Burn and TURN baby!!!__**`)
+                        .catch((err) => {
+                        	console.log(`${console.log(functionName())}: Failed to print table.`);
+                            game.end(err);
+                        }); // fatal error
     }
 
     async deal_river(){
         game.deck.pick(1,"Muck");
         this._board.push(game.deck.pick(1,"River")[0]);
-        await game.message.delete();
-        await game.channel.send(`**__This is it, the river!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+		await game.table.draw_cards(this._board)
+						.catch((err) => game.end(err));
+		// await game.message.delete();
+		// await game.channel.send(`**__This is it, the river!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
+		await game.table.print_table(game.channel, `**__This is it, the river!__**`)
+                        .catch((err) => {
+                        	console.log(`${console.log(functionName())}: Failed to print table.`);
+                            game.end(err);
+                        }); // fatal error
     }
 
     async start_showdown(){
@@ -59,7 +90,6 @@ class Round {
     }
 
     async advance_betting_round(id_to_act){
-        console.log(id_to_act);
         game.players[id_to_act].prompt_move().then((move) => {this.onPlayerMove(id_to_act, move)});
     }
     // game.channel.send(`Action is on ${(first_actor.member.nickname)?first_actor.member.nickname:first_actor.member.user.username}`)

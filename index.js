@@ -69,3 +69,16 @@ client.on('message', message => {
       handleAdminCommand(message, args);
     }
 });
+
+
+// // forcing crashes when code is dicey
+// process.on('uncaughtException', err => {
+// 	console.log(`Uncaught Exception: ${err}`)
+// 	process.exit(1)
+// });
+
+// // forcing crashes when things get spoopy
+// process.on('unhandledRejection', (reason, promise) => {
+// 	console.log('Unhandled rejection at ', promise, `reason: ${err}`)
+// 	process.exit(1)
+// });

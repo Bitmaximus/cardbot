@@ -1,80 +1,146 @@
+/**********************************************************************************************************************************/
+// Functionality to add:
+// These need to be displayed on the table:
+// -Dealer position
+// -Whether a player is in a hand (i.e. whether they folded), could be an image transformation greying out the player image
+// -The current active player, not sure how to show that, maybe an colored outline around their player image
+// -An image with a small text box (like the one for player name) to display pending bets in front of each player) 
+// -A small text box to display main pot (same one could appear in the locations I specified in the file for side pots
+//
+// Add comments
+// Add error handling
+// investigate save/restore instance
+/**********************************************************************************************************************************/
+
+
 const {createCanvas, loadImage} = require('canvas');
 
 class Table{
     constructor(players){
         this._players = players;
-        this._initial_graphic = this.init_table();
-        this._graphic = this._initial_graphic;
-        this._cards_drawn = 0;
+		this._graphic = this.draw_new_table()
+							.catch(console.error); // the canvas object containing the table.
+        this._cards_drawn = 0; // number of cards currently drawn to the table.
+		this._message = null; // previous message containing the table image posted to the text-channel.
+		this._table_image = null; // loaded image file of the blank table.
+		this._player_images = []; // array of loaded player avatar images.
     }
 
-    async init_table(){
-        const canvas = createCanvas(1301, 718);
-        const ctx = canvas.getContext('2d');
-        //Load and draw the table image
-        const table_image = await loadImage(`./other_images/poker_table_large.png`);
-        ctx.drawImage(table_image, 0, 0);
+	// params: none
+    // description: Creates a canvas object and populates it with the table and player avatar graphics. Reuses this._graphic on subsequent calls.
+    // returns: the table's canvas object.
+    // throws an error if: an image failed to load.
+    async draw_new_table(){
+		const table_is_not_initialized = (this._table_image == null);
+		let canvas;
+		let ctx;
+
+		if (table_is_not_initialized) {
+			// generate canvas and load the table image.
+			canvas = createCanvas(1301, 718);
+			ctx = canvas.getContext('2d');
+
+			this._table_image = await loadImage(`./other_images/poker_table_large.png`)
+									  .catch((err) => {
+										console.log(`"poker_table_large.png" failed to load.`);
+										throw err;
+									});
+		} else {
+			canvas = this._graphic;
+			ctx = await canvas.then((canvas) => canvas.getContext('2d'));
+		}
+
+		// draw the table
+		ctx.drawImage(this._table_image, 0, 0);
+		
+		// draw the player avatars
         let ava_size = 128;
         for (let i = 0; i < this._players.length; i++){
-            //Load the avatar for this player
-            let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"));
+			if (table_is_not_initialized) {
+	            //Load the avatar for this player
+				let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"))
+								.catch((err) => {
+									console.log(`${this._players[i].member.user.displayAvatarURL().replace(/\.\w{3,4}$/i,".png")} failed to load.`);
+									throw err;
+								});
+				this._player_images.push(img);
+			}
+
             //Draw the avatar in the correct position and shape
             ctx.save();
             ctx.beginPath();
             ctx.arc(seat_coords[i][0], seat_coords[i][1], ava_size/2, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(img, seat_coords[i][0]-ava_size/2, seat_coords[i][1]-ava_size/2, ava_size, ava_size);
-            ctx.restore();
+            ctx.drawImage(this._player_images[i], seat_coords[i][0]-ava_size/2, seat_coords[i][1]-ava_size/2, ava_size, ava_size);
+			ctx.restore();
+			
             //Add nickname
             ctx.fillStyle = ('rgb(194,193,190');
             roundRect(ctx,seat_coords[i][0]-ava_size/2,seat_coords[i][1]+ava_size/4,5/4*ava_size,36,15,true);
             ctx.font = 'bold 28px sans-serif';
             ctx.fillStyle = ('black');
             ctx.fillText((this._players[i].member.nickname)?this._players[i].member.nickname:this._players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
-        }
+		}
+
+		this._cards_drawn = 0;
         return canvas;
-    }
+	}
 
+    // params: array of card objects
+    // description: adds images of the face-up cards (the board) to the table
+    // returns: the canvas object.
+    // throws an error if: the image fails to load.
     async draw_cards(cards){
-      //const ctx = canvas.getContext('2d');
-      for (card of cards) {
-        // draw card
-        const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`)
-                                 .catch((err) => {console.log("The image failed to load."); console.error(err);}); /* fail to load image handling */
-        //ctx.drawImage(card_image, 135*i, 0);
+		//console.log(this._graphic);
+		const ctx = await this._graphic.then((canvas) => canvas.getContext('2d'));
+		// start drawing cards at the first undrawn card.
+		for (let i = this._cards_drawn; i < cards.length; i++) {
+			const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`)
+									.catch((err) => {
+										console.log(`table.draw_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
+										throw err;
+									});
+			ctx.drawImage(card_image, card_coords[i][0], card_coords[i][1], 130, 186);
+			this._cards_drawn++;
+		}
 
-        //manipulate this._graphic which is a canvas object
-        this._cards_drawn++;
-      }
-        
-
-        // const canvas = createCanvas(1301, 718);
-        // const ctx = canvas.getContext('2d');
-        // //Load and draw the table image
-        // const table_image = await loadImage(`./other_images/poker_table_large.png`);
-        // ctx.drawImage(table_image, 0, 0);
-        // let ava_size = 128;
-        // for (let i = 0; i < this._players.length; i++){
-        //     //Load the avatar for this player
-        //     let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"));
-        //     //Draw the avatar in the correct position and shape
-        //     ctx.save();
-        //     ctx.beginPath();
-        //     ctx.arc(seat_coords[i][0], seat_coords[i][1], ava_size/2, 0, Math.PI * 2);
-        //     ctx.clip();
-        //     ctx.drawImage(img, seat_coords[i][0]-ava_size/2, seat_coords[i][1]-ava_size/2, ava_size, ava_size);
-        //     ctx.restore();
-        //     //Add nickname
-        //     ctx.fillStyle = ('rgb(194,193,190');
-        //     roundRect(ctx,seat_coords[i][0]-ava_size/2,seat_coords[i][1]+ava_size/4,5/4*ava_size,36,15,true);
-        //     ctx.font = 'bold 28px sans-serif';
-        //     ctx.fillStyle = ('black');
-        //     ctx.fillText((this._players[i].member.nickname)?this._players[i].member.nickname:this._players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
-        // }
-
+		return this._graphic;
     }
 
-    reset(){this._graphic = this._initial_graphic;}
+    // params: channel, [message (optional)]
+    // description: posts the current table graphic as a message to the given channel, with an optional header message.
+    // returns: null
+    // throws an error if: unable to send message
+    async print_table(channel, message){
+		const Discord = require('discord.js');
+
+		// delete previous table message if it exists
+		if (this._message != null) {
+			await this._message.delete()
+							   .catch(console.error);  // non-fatal error.
+		}
+
+		// send a new table message
+    	if (message != undefined) {
+    		await channel.send(message, new Discord.MessageAttachment(await this._graphic.then((g) => g.toBuffer()), 'table.png'))
+                    	 .then(msg => this._message = msg)
+                    	 .catch((err) => {
+                            console.log("table.print_table(): Failed to send message.");
+                            throw err;
+                         });
+    	} else {
+        	await channel.send(new Discord.MessageAttachment(await this._graphic.then((g) => g.toBuffer()), 'table.png'))
+                    	 .then(msg => {this._message = msg})
+                    	 .catch((err) => {
+                            console.log();
+                            throw err;
+                         });
+    	}
+    }
+
+	reset(){
+		this.draw_new_table();
+	}
 
     get graphic(){return this._graphic}
     set graphic(value){this._graphic = value}
@@ -151,16 +217,15 @@ const seat_coords = [
   [71,214]
 ]
 
-//Not yet implemented
 const card_coords = [
   //Flop
   [290,259],
   [430,259],
-  [572,259],
+  [570,259],
   //Turn
-  [719,259],
+  [710,259],
   //River
-  [865,259]
+  [850,259]
 ]
 
 //Not yet implemented
