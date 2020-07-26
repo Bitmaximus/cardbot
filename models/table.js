@@ -166,6 +166,7 @@ async function draw_new_table(){
 	} else {
 		canvas = this._graphic;
 		ctx = await canvas.then((canvas) => canvas.getContext('2d'));
+		ctx.clearRect();
 	}
 
 	// draw the table
