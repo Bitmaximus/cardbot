@@ -30,20 +30,9 @@ class Round {
     async deal_flop(){
         // select new cards and draw them to the table.
         game.deck.pick(1,"Muck");
-		//for(let card of game.deck.pick(3,"Flop")) this._board.push(card);
+		for(let card of game.deck.pick(3,"Flop")) this._board.push(card);
         await game.table.add_cards(this._board)
                         .catch((err) => game.end(err));
-
-        // announce the flop and print the new table.
-        // await game.message.delete()
-        //                   .catch(console.error);  // non-fatal error.
-		// await game.channel.send(`**__Here comes the flop!__**`, await display_horizontal(this._board)
-		// 																.catch(console.error))
-        //                   .then(msg => game.message = msg)
-        //                   .catch((err) => {
-        //                     	console.log("round.deal_flop(): Failed to announce the flop.");
-        //                    		console.error(err);
-		//                    }); // non-fatal error.
         await game.table.print_table(game.channel, `**__Here comes the flop!__**`)
                         .catch((err) => {
                         	console.log(`${console.log(functionName())}: Failed to print table.`);
@@ -56,8 +45,6 @@ class Round {
 		this._board.push(game.deck.pick(1,"Turn")[0]);
 		await game.table.add_cards(this._board)
                         .catch((err) => game.end(err));
-        // await game.message.delete();
-		// await game.channel.send(`**__Burn and TURN baby!!!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
 		await game.table.print_table(game.channel, `**__Burn and TURN baby!!!__**`)
                         .catch((err) => {
                         	console.log(`${console.log(functionName())}: Failed to print table.`);
@@ -70,8 +57,6 @@ class Round {
         this._board.push(game.deck.pick(1,"River")[0]);
 		await game.table.add_cards(this._board)
 						.catch((err) => game.end(err));
-		// await game.message.delete();
-		// await game.channel.send(`**__This is it, the river!__**`, await display_horizontal(this._board)).then(msg => game.message = msg);
 		await game.table.print_table(game.channel, `**__This is it, the river!__**`)
                         .catch((err) => {
                         	console.log(`${console.log(functionName())}: Failed to print table.`);
@@ -112,7 +97,7 @@ class Round {
             switch(this._state){
                 case "PRE-FLOP":
                     await this.deal_hands();
-                    this.advance_betting_round((game.players.length > 2)? this._dealer_idx-3 % game.players.length : this._dealer_idx-1);
+                    this.advance_betting_round((game.players.length > 2) ? this._dealer_idx - 3 % game.players.length : this._dealer_idx - 1);
                     break;
                 case "FLOP": 
                     this._pot.collect_bets();
