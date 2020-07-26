@@ -78,16 +78,18 @@ function genSimpleMsg(title,message){
 }
 
 function start_game(message, max_players){
+	if (max_players > 10) {max_players = 10;}
+
 	message.channel.send("React to enter the tournament").then(
 		async (msg) => {
 			await msg.react('▶️').catch(console.error);
-			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), { max: max_players, time: 500000});
+			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), {max: max_players, time: 500000});
 			
 			collector.on('end', async (collected) => {
 				let users = Array.from(collected.get('▶️').users.cache.values()).filter(user => user.id != bot_id);
 				let members = [];
 				for (let i = 0; i < users.length; i++) {members.push(await message.guild.members.fetch(users[i]))}
-				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack),message.channel);
+				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack), message.channel);
 				await game.table.print_table(message.channel, "The game has begun!")
 								.catch((err) => {
 													console.log("start_game(): Unable to print table.");
@@ -96,7 +98,7 @@ function start_game(message, max_players){
 				game.round.advance_state();
 			});
 		}
-	)
+	).catch(console.error);
 }
 
 module.exports = {

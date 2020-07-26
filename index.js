@@ -11,7 +11,7 @@ client.login(secret.token);
 client.on('ready', async function (e) {
 	console.info('Connected');
 	console.info('Logged in as: ');
-  console.info(client.user.username + ' - (' + client.user.id + ')');
+	console.info(client.user.username + ' - (' + client.user.id + ')');
 });
 
 /*

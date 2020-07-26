@@ -1,12 +1,19 @@
 /**********************************************************************************************************************************/
 // Functionality to add:
 //
+//
 // These need to be displayed on the table:
-// -Dealer position
+// -Dealer position (red tag over players on bottom of table, under players on top of table)
 // -Whether a player is in a hand (i.e. whether they folded), could be an image transformation greying out the player image
-// -The current active player, not sure how to show that, maybe an colored outline around their player image
+// -The current active player, not sure how to show that, maybe an colored outline around their player image (green border)
 // -An image with a small text box (like the one for player name) to display pending bets in front of each player) 
 // -A small text box to display main pot (same one could appear in the locations I specified in the file for side pots
+// -word-wrap on player names, scale player name text? increase canvas size for a buffer space.
+//
+// Changes made: created test function with implemented scaling
+// -Dynamically resize player name border to fit larger player names.
+// -Added scalable canvas and objects
+//
 /**********************************************************************************************************************************/
 
 
@@ -138,6 +145,7 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
 
 // params: none
 // description: Creates a canvas object and populates it with the table and player avatar graphics. Reuses this._graphic on subsequent calls.
+//				 must be invoked using draw_new_table.call(this), to provide access to Table's private members.
 // returns: the table's canvas object.
 // throws an error if: an image failed to load.
 async function draw_new_table(){
@@ -198,20 +206,20 @@ async function draw_new_table(){
 
 
 const seat_coords = [
-  //Seat 1-3 (Bottom of table)
-  [351,653],
-  [651,653],
-  [951,653],
-  //Seat 4-5 (Right of table)
-  [1218,530],
-  [1218,214],
-  //Seat 6-8 (Top of table)
-  [951,60],
-  [651,60],
-  [351,60],
-  //Seat 9-10 (Left of table)
-  [71,530],	
-  [71,214]
+	//Seat 1-3 (Bottom of table)
+	[351,653],
+	[651,653],
+	[951,653],
+	//Seat 4-5 (Right of table)
+	[1218,530],
+	[1218,214],
+	//Seat 6-8 (Top of table)
+	[951,60],
+	[651,60],
+	[351,60],
+	//Seat 9-10 (Left of table)
+	[71,214],	
+	[71,530]
 ]
 
 const card_coords = [
