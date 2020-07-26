@@ -16,7 +16,7 @@ class Game{
         //Table
         this._table = new Table(this._players);
         //Round
-        this._round = new Round(1,getRandomIntInclusive(1,this._players.length));
+        this._round = new Round(1,getRandomIntInclusive(0,this._players.length));
     }
 
     start_new_round(){

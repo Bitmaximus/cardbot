@@ -17,10 +17,9 @@ const {createCanvas, loadImage} = require('canvas');
 
 class Table{
     constructor(players){
-        this._players = players;
-		this._graphic = this.draw_new_table()
-							.catch(console.error); // the canvas object containing the table.
-        this._cards_drawn = 0; // number of cards currently drawn to the table.
+    this._players = players;
+		this._graphic = this.draw_new_table().catch(console.error); // the canvas object containing the table.
+    this._cards_drawn = 0; // number of cards currently drawn to the table.
 		this._message = null; // previous message containing the table image posted to the text-channel.
 		this._table_image = null; // loaded image file of the blank table.
 		this._player_images = []; // array of loaded player avatar images.
@@ -72,7 +71,7 @@ class Table{
             ctx.arc(seat_coords[i][0], seat_coords[i][1], ava_size/2, 0, Math.PI * 2);
             ctx.clip();
             ctx.drawImage(this._player_images[i], seat_coords[i][0]-ava_size/2, seat_coords[i][1]-ava_size/2, ava_size, ava_size);
-			ctx.restore();
+			      ctx.restore();
 			
             //Add nickname
             ctx.fillStyle = ('rgb(194,193,190');
