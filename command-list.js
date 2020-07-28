@@ -177,7 +177,6 @@ var adminCommands = {
 
 async function TEST(message, params) {
 	// figure out where Math.floor is required
-	// figure out the 'i' in playerAvatar definition
 	// add commentary
 	// encapsulate the drawing of text and text frames, addText(string text, string font, 2DRenderObject ctx, string textColor, string frameColor, int centerX, int centerY)
 
@@ -226,9 +225,9 @@ async function TEST(message, params) {
 	channel = message.channel;
 
 	// generate canvas and load the table image.
-	const xCenterPoint = Math.floor(canvasSize[0] / 2); // centerpoint of the canvas on the x-axis before scaling
-	const yCenterPoint = Math.floor(canvasSize[1] / 2);
-	let canvas = createCanvas(Math.floor(canvasSize[0] * CANVAS_SCALE), Math.floor(canvasSize[1] * CANVAS_SCALE));
+	const xCenterPoint = canvasSize[0] / 2; // centerpoint of the canvas on the x-axis before scaling
+	const yCenterPoint = canvasSize[1] / 2;
+	let canvas = createCanvas(canvasSize[0] * CANVAS_SCALE, canvasSize[1] * CANVAS_SCALE);
 	let ctx = canvas.getContext('2d');
 	const table_image = await loadImage(`./other_images/poker_table_large.png`)
 							.catch((err) => {
@@ -237,7 +236,7 @@ async function TEST(message, params) {
 							});
 
 	// draw the table
-	ctx.drawImage(table_image, TEST_transformPoint(0, TABLE_SCALE, CANVAS_SCALE, xCenterPoint), TEST_transformPoint(0, TABLE_SCALE, CANVAS_SCALE, yCenterPoint), Math.floor(table_image.width * TABLE_SCALE), Math.floor(table_image.height * TABLE_SCALE));
+	ctx.drawImage(table_image, TEST_transformPoint(0, TABLE_SCALE, CANVAS_SCALE, xCenterPoint), TEST_transformPoint(0, TABLE_SCALE, CANVAS_SCALE, yCenterPoint), table_image.width * TABLE_SCALE, table_image.height * TABLE_SCALE);
 
 	// draw the player avatars
 	for (let i = 0; i < playerCount; i++){
@@ -387,8 +386,8 @@ async function TEST_drawAvatar(ctx, player, playerXCoord, playerYCoord, scale, g
 
 		// add green circle
 		ctx.fillStyle = 'green';
-		ctx.fillRect(Math.floor(playerXCoord - ((ava_size / 2) * 1.1)),
-					 Math.floor(playerYCoord - ((ava_size / 2) * 1.1)),
+		ctx.fillRect(playerXCoord - ((ava_size / 2) * 1.1),
+					 playerYCoord - ((ava_size / 2) * 1.1),
 					 ava_size * 1.1,
 					 ava_size * 1.1);
 		ctx.restore();
@@ -417,8 +416,8 @@ async function TEST_drawAvatar(ctx, player, playerXCoord, playerYCoord, scale, g
 	}
 
 	ctx.drawImage(playerAvatar,
-				  Math.floor(playerXCoord - (ava_size / 2)),
-				  Math.floor(playerYCoord - (ava_size / 2)),
+				  playerXCoord - (ava_size / 2),
+				  playerYCoord - (ava_size / 2),
 				  ava_size,
 				  ava_size);
 	ctx.restore();
@@ -449,8 +448,8 @@ async function TEST_drawAvatar(ctx, player, playerXCoord, playerYCoord, scale, g
 				   true);
 	ctx.fillStyle = ('black');
 	ctx.fillText(playerName,
-				 Math.floor(playerXCoord - (textWidth / 2)),
-				 Math.floor(playerYCoord + (ava_size / 4)));
+				 playerXCoord - (textWidth / 2),
+				 playerYCoord + (ava_size / 4));
 }
 
 module.exports = {
