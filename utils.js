@@ -109,5 +109,6 @@ module.exports = {
 	isPermitted,
 	display_horizontal,
 	genSimpleMsg,
-	start_game
+	start_game,
+	mod
 }

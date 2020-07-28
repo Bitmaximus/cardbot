@@ -16,13 +16,13 @@ class Game{
         //Table
         this._table = new Table(this._players);
         //Round
-        this._round = new Round(1,getRandomIntInclusive(0,this._players.length));
+        this._round = new Round(1,getRandomIntInclusive(0,this._players.length-1), this);
     }
 
     start_new_round(){
         this._deck.reset();
         this._table.reset();
-        this._round = new Round(this._round.number+1,this._round.dealer_idx-1 % this._players.length);
+        this._round = new Round(this._round.number+1,this._round.dealer_idx-1 % this._players.length, this);
         this._round.advance_state();
     }
 
