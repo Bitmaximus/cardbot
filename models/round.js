@@ -8,7 +8,6 @@ class Round {
     constructor(number, dealer_idx){
         this._number = number;
         this._dealer_idx = dealer_idx
-
         this._state = states[0]; //See 'states' array
         this._board = []; //0|3|4|5 cards on board
         this._hands = []; //Only keep hands of players that remain in the round.
@@ -81,8 +80,6 @@ class Round {
     async advance_betting_round(id_to_act){
         game.players[id_to_act].prompt_move().then((move) => {this.onPlayerMove(id_to_act, move)});
     }
-    // game.channel.send(`Action is on ${(first_actor.member.nickname)?first_actor.member.nickname:first_actor.member.user.username}`)
-    // while (all player responses != check || fold && bets_not_equal && player_action_completed.size == players.size)
 
     onPlayerMove(actor_id, move){
         game.channel.send(`**${move}**`);
@@ -92,10 +89,8 @@ class Round {
         else this.advance_betting_round(actor_id-1 % game.players.length);
     }
 
-    should_end_betting_round(){
-        return (this._hand_history.length >= game.players.length);
-    }
-
+    should_end_betting_round(){return (this._hand_history.length >= game.players.length);}
+ 
     async advance_state(){
         if (states.indexOf(this._state) < 5) {
             switch(this._state){
@@ -157,17 +152,6 @@ const states = [
     "RIVER",
     "SHOW-DOWN"
 ]
-
-let display_horizontal = async (cards) => {
-	const canvas = createCanvas(cards.length * 135, 181);
-	const ctx = canvas.getContext('2d');
-	for (let i=0; i< cards.length; i++) {
-		const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`);
-		ctx.drawImage(card_image, 135*i, 0);
-    }
-    
-    return new Discord.MessageAttachment(canvas.toBuffer(), 'cards.png');
-}
 
 let poker_sort = (a,b) => {
     if (b.type - a.type != 0) return (b.type - a.type);

@@ -23,18 +23,19 @@ class Player {
                 await msg.react("📁").catch(console.error);
 
                 const action_collector = msg.createReactionCollector((reaction, user) => 
-                {
-                    if (!user.bot && (user.id != this._member.user.id)) reaction.users.remove(user);
-                    return ['🆙','☑️','📁'].includes(reaction._emoji.name) && (user.id == this._member.user.id)
-                }, {max: 1, time: 60000});
+                {if (!user.bot && (user.id != this._member.user.id)) reaction.users.remove(user);
+                return ['🆙','☑️','📁'].includes(reaction._emoji.name) && (user.id == this._member.user.id)}, {max: 1, time: 60000});
                 
                 //What we do when the player picks an action
                 action_collector.on('end', async (reactions,reason) => {
                     msg.delete() //Player has made a choice, we don't need to display choices now.
+
                     if (reason === 'time') {
                         game.channel.send(`***${this.nick_or_name()} did not act in time!***`);
                         resolve(new Move("Fold", this, null)); 
-                        return;}
+                        return;
+                    }
+                    
                     switch(reactions.first()._emoji.name) {
                         //Player Bet
                         case('🆙'):
