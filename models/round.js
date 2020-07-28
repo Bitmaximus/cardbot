@@ -17,6 +17,10 @@ class Round {
     } 
 
     async deal_hands(){
+		await game.table.print_table(game.channel, "The game has begun!")
+									.catch((err) => {
+										game.end(err);
+									});
         for(let player of game.players){
             let cards = game.deck.pick(2,"Hand");
             player.send_hand(cards, this._number);

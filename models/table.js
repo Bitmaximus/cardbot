@@ -3,6 +3,7 @@
 //
 //
 // These need to be displayed on the table:
+// - create updateTable(player, bet, folded, etc..)
 // - save each players region seperately so that we can modify them individually
 // -Dealer position (red tag over players on bottom of table, under players on top of table)
 // -Whether a player is in a hand (i.e. whether they folded), could be an image transformation greying out the player image
