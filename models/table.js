@@ -3,7 +3,9 @@
 //
 //
 // These need to be displayed on the table:
-// - create updateTable(player, bet, folded, etc..)
+// - finish cleaning up commentary
+// - align the cards properly
+// - create some form of updateTable(player, bet, folded, etc..)
 // - save each players region seperately so that we can modify them individually
 // -Dealer position (red tag over players on bottom of table, under players on top of table)
 // -Whether a player is in a hand (i.e. whether they folded), could be an image transformation greying out the player image
@@ -20,31 +22,46 @@
 
 
 const {createCanvas, loadImage} = require('canvas');
+const Discord = require('discord.js');
+const {Player} = require('./player.js');
 
-const canvasSize = [1301, 718]
 const CANVAS_SCALE = 1.1; // 1.1 seems nice
-const TABLE_SCALE = 1; // 1 seems nice
-const xCenterPoint = canvasSize[0] / 2; // centerpoint of the canvas on the x-axis before scaling
-const yCenterPoint = canvasSize[1] / 2;
+const TABLE_SCALE  = 1; // 1 seems nice
+const canvasSize   = {x: 1301,
+					  y: 718};
+const centerPoint  = {x: canvasSize.x / 2,
+					  y: canvasSize.y / 2}; // centerpoint of the canvas
 
 class Table{
+	/**
+	 * @param {Player[]} players an array of players in the current game.
+	 */
     constructor(players){
-        this._players = players;
-		this._graphic = draw_new_table.call(this)
-							.catch(console.error); // the canvas object containing the table.
-        this._cards_drawn = 0; // number of cards currently drawn to the table.
-		this._message = null; // previous message containing the table image posted to the text-channel.
+		this._players = []
+		for (let i = 0; i < players.length; i++) {
+			let [playerXCoord, playerYCoord] = transformCoords(seat_coords[i][0], seat_coords[i][1]);
+			this._players.push(new PlayerTable(players[i], playerXCoord, playerYCoord));
+		}
+
 		this._table_image = null; // loaded image file of the blank table.
-		this._player_images = []; // array of loaded player avatar images.
+		this._tableCanvas = draw_new_table.call(this)
+							.catch(console.error); // the canvas object containing the table.
+		
+        this._cards_drawn = 0; // number of cards currently drawn to the table.
+		this._activeMessage = null; // message containing the table image currently posted to the text-channel.
     }
 
-    // params: array of card objects
-    // description: adds images of the face-up cards (the board) to the table
-    // returns: the canvas object.
-    // throws an error if: the image fails to load.
+	/**
+	 * adds images of the face-up cards (the board) to the table
+	 * throws an error if an image fails to load.
+	 * @param {Card[]} cards an array of cards to be added to the table as the current board.
+	 * @returns {void}
+	 */
     async add_cards(cards){
-		//console.log(this._graphic);
-		const ctx = await this._graphic.then((canvas) => canvas.getContext('2d'));
+		const cardWidth = 130; // not the actual width and height of the card images, this is the dimensions they should be rendered with at the base canvas scale.
+		const cardHeight = 186;
+		const ctx = await this._tableCanvas.then((canvas) => canvas.getContext('2d'));
+
 		// start drawing cards at the first undrawn card.
 		for (let i = this._cards_drawn; i < cards.length && i <= 4; i++) {
 			const card_image = await loadImage(`./card_images_75/${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png`)
@@ -52,50 +69,85 @@ class Table{
 										console.log(`table.add_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
 										throw err;
 									});
-			ctx.drawImage(card_image, card_coords[i][0], card_coords[i][1], 130, 186);
+			ctx.drawImage(card_image, transformCoords(card_coords[i][0], "x"), transformCoords(card_coords[i][1], "y"), cardWidth * TABLE_SCALE, cardHeight * TABLE_SCALE);
 			this._cards_drawn++;
 		}
-
-		return this._graphic;
     }
 
-    // params: channel, [message (optional)]
-    // description: posts the current table graphic as a message to the given channel, with an optional header message.
-    // returns: void
-    // throws an error if: unable to send message
+	/**
+	 * posts the current table graphic as a message to the given channel, with an optional header message.
+	 * throws an error if unable to send the message.
+	 * @param {Discord.Channel} channel The channel the active game is being displayed in
+	 * @param {Discord.Message} message (optional) A message to send with the table image
+	 * @returns {void}
+	 */
     async print_table(channel, message){
-		const Discord = require('discord.js');
 
 		// delete previous table message if it exists
-		if (this._message != null) {
-			await this._message.delete()
-							   .catch(console.error);  // non-fatal error.
+		if (this._activeMessage != null) {
+			await this._activeMessage.delete()
+									 .catch(console.error);  // non-fatal error.
 		}
 
 		// send a new table message
     	if (message != undefined) {
-    		await channel.send(message, new Discord.MessageAttachment(await this._graphic.then((g) => g.toBuffer()), 'table.png'))
-                    	 .then(msg => this._message = msg)
+    		await channel.send(message, new Discord.MessageAttachment(await this._tableCanvas.then((c) => c.toBuffer()), 'table.png'))
+                    	 .then(msg => this._activeMessage = msg)
                     	 .catch((err) => {
                             console.log("table.print_table(): Failed to send message.");
                             throw err;
                          });
     	} else {
-        	await channel.send(new Discord.MessageAttachment(await this._graphic.then((g) => g.toBuffer()), 'table.png'))
-                    	 .then(msg => {this._message = msg})
+        	await channel.send(new Discord.MessageAttachment(await this._tableCanvas.then((c) => c.toBuffer()), 'table.png'))
+                    	 .then(msg => {this._activeMessage = msg})
                     	 .catch((err) => {
-                            console.log();
-                            throw err;
-                         });
+							console.log("table.print_table(): Failed to send message.");
+							throw err;
+						 });
     	}
     }
 
+	/**
+	 * clears the canvas and draws a new table.
+	 * @returns {void}
+	 */
 	reset(){
 		draw_new_table.call(this);
 	}
+}
 
-    get graphic(){return this._graphic}
-    set graphic(value){this._graphic = value}
+/**
+ * only used within table.js
+ * stores canvas rendering data associated with specific players 
+ */
+class PlayerTable extends Player {
+	/**
+	 * @param {Player} player a player in the active game
+	 * @param {number} xCoord player avatar's x-coordinate (top left), transformed to the scale of the canvas and table
+	 * @param {number} yCoord player avatar's y-coordinate (top left), transformed to the scale of the canvas and table
+	 */
+	constructor(player, xCoord, yCoord){
+		super(player.member, player.seat_idx, player.stack);
+		this._name = player.member.nickname ? player.member.nickname : player.member.user.username; // {string} either the nickname or username used to identify the player
+		this._tableSpace = {img: null,
+							x: 0,
+							y: 0}; // game area for the player on the board
+		this._avatar = {img: loadImage((player.member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"))
+							 .catch((err) => {
+								console.log(`${player.member.user.displayAvatarURL().replace(/\.\w{3,4}$/i,".png")} failed to load.`);
+			  					throw err;
+							 }),
+						x: xCoord,
+						y: yCoord};
+	}
+
+	// accessor functions //
+	get tableSpace(){return this._tableSpace}
+	set tableSpace(value){this._tableSpace = value}
+
+	// read-only value accessors
+	get name(){return this._name}
+	get avatar(){return this._avatar}
 }
 
 /**
@@ -115,6 +167,7 @@ class Table{
 * @param {Number} [radius.bl = 0] Bottom left
 * @param {Boolean} [fill = false] Whether to fill the rectangle.
 * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
+* @returns {void}
 */
 function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
   if (typeof stroke === 'undefined') {
@@ -151,8 +204,16 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
   
 }
 
+
+
+////////////////////// THIS IS WHERE I STOPPED REVISING THE COMMENTS ////////////////////////////////////////
+//                           everything above this I cleaned up                                            //
+
+
+
+
 // params: none
-// description: Creates a canvas object and populates it with the table and player avatar graphics. Reuses this._graphic on subsequent calls.
+// description: Creates a canvas object and populates it with the table and player avatar graphics. Reuses this.tableCanvas on subsequent calls.
 //				 must be invoked using draw_new_table.call(this), to provide access to Table's private members.
 // returns: the table's canvas object.
 // throws an error if: an image failed to load.
@@ -164,7 +225,7 @@ async function draw_new_table(){
 
 	if (table_is_not_initialized) {
 		// generate canvas and load the table image.
-		canvas = createCanvas(canvasSize[0] * CANVAS_SCALE, canvasSize[1] * CANVAS_SCALE);
+		canvas = createCanvas(canvasSize.x * CANVAS_SCALE, canvasSize.y * CANVAS_SCALE);
 		ctx = canvas.getContext('2d');
 
 		this._table_image = await loadImage(`./other_images/poker_table_large.png`)
@@ -173,7 +234,7 @@ async function draw_new_table(){
 									throw err;
 								});
 	} else {
-		canvas = this._graphic;
+		canvas = this._tableCanvas;
 		ctx = await canvas.then((canvas) => canvas.getContext('2d'));
 		ctx.clearRect();
 	}
@@ -183,19 +244,7 @@ async function draw_new_table(){
 	
 	// draw the player avatars
 	for (let i = 0; i < this._players.length; i++){
-		let [playerXCoord, playerYCoord] = transformCoords(seat_coords[i][0], seat_coords[i][1]);
-
-		if (table_is_not_initialized) {
-			//Load the avatar for this player
-			let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"))
-							.catch((err) => {
-								console.log(`${this._players[i].member.user.displayAvatarURL().replace(/\.\w{3,4}$/i,".png")} failed to load.`);
-								throw err;
-							});
-			this._player_images.push(img);
-		}
-
-		await drawAvatar(ctx, this._players[i].member, playerXCoord, playerYCoord);
+		await drawAvatar(ctx, this._players[i]);
 	}
 
 	this._cards_drawn = 0;
@@ -268,10 +317,10 @@ function transformCoords(arg1, arg2) {
 		let axis = arg2;
 		switch (axis) {
 			case 'x':
-				coord = ((originalCoord - xCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * xCenterPoint);
+				coord = ((originalCoord - centerPoint.x) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.x);
 				break;
 			case 'y':
-				coord = ((originalCoord - yCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * yCenterPoint);
+				coord = ((originalCoord - centerPoint.y) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.y);
 				break;
 			default:
 				console.log("transformCoords passed invalid parameter arg2: " + arg2);
@@ -280,24 +329,18 @@ function transformCoords(arg1, arg2) {
 	} else {
 		let originalXCoord = arg1;
 		let originalYCoord = arg2;
-		let xCoord = ((originalXCoord - xCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * xCenterPoint);
-		let yCoord = ((originalYCoord - yCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * yCenterPoint);
+		let xCoord = ((originalXCoord - centerPoint.x) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.x);
+		let yCoord = ((originalYCoord - centerPoint.y) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.y);
 		return [xCoord, yCoord];
 	}
 }
 
-async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, greyOut) {
+async function drawAvatar(ctx, player, greenBorder, greyOut) {
 	if (greenBorder == undefined) greenBorder = false;
 	if (greyOut == undefined) greyOut = false;
 
 	const ava_size = Math.floor(128 * TABLE_SCALE);
 	const font_size = Math.floor(28 * TABLE_SCALE);
-
-	const playerAvatar = await loadImage((player.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"))
-							   .catch((err) => {
-									console.log(`${player.user.displayAvatarURL().replace(/\.\w{3,4}$/i,".png")} failed to load.`);
-									throw err;
-							   });
 
 	//Draw the avatar in the correct position and shape
 
@@ -306,8 +349,8 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 		// create a clipping region for the border to be drawn in
 		ctx.save();
 		ctx.beginPath();
-		ctx.arc(playerXCoord,
-				playerYCoord,
+		ctx.arc(player.avatar.x,
+				player.avatar.y,
 				(ava_size / 2) * 1.1,
 				0,
 				Math.PI * 2);
@@ -315,8 +358,8 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 
 		// add green circle
 		ctx.fillStyle = 'green';
-		ctx.fillRect(playerXCoord - ((ava_size / 2) * 1.1),
-					 playerYCoord - ((ava_size / 2) * 1.1),
+		ctx.fillRect(player.avatar.x - ((ava_size / 2) * 1.1),
+					 player.avatar.y - ((ava_size / 2) * 1.1),
 					 ava_size * 1.1,
 					 ava_size * 1.1);
 		ctx.restore();
@@ -325,8 +368,8 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 	// create clipping region for avatar to be drawn in
 	ctx.save();
 	ctx.beginPath();
-	ctx.arc(playerXCoord,
-			playerYCoord,
+	ctx.arc(player.avatar.x,
+			player.avatar.y,
 			(ava_size / 2),
 			0,
 			Math.PI * 2);
@@ -335,8 +378,8 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 	// apply a grey backdrop behind the player avatar
 	if (greyOut) {
 		ctx.fillStyle = 'grey';
-		ctx.fillRect(Math.floor(playerXCoord - (ava_size / 2)),
-					 Math.floor(playerYCoord - (ava_size / 2)),
+		ctx.fillRect(player.avatar.x - (ava_size / 2),
+					 player.avatar.y - (ava_size / 2),
 					 ava_size,
 					 ava_size);
 
@@ -344,9 +387,9 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 		ctx.globalAlpha = 0.5; // 0.8 seems nice
 	}
 
-	ctx.drawImage(playerAvatar,
-				  playerXCoord - (ava_size / 2),
-				  playerYCoord - (ava_size / 2),
+	ctx.drawImage(await player.avatar.img,
+				  player.avatar.x - (ava_size / 2),
+				  player.avatar.y - (ava_size / 2),
 				  ava_size,
 				  ava_size);
 	ctx.restore();
@@ -356,8 +399,7 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 	ctx.fillStyle = ('rgb(194,193,190');
 	ctx.font = `bold ${font_size}px sans-serif`;
 	ctx.textBaseline = 'top';
-	const playerName = player.nickname ? player.nickname : player.user.username;
-	const mt = ctx.measureText(playerName);
+	const mt = ctx.measureText(player.name);
 	const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
 	const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
 										? (5 * TABLE_SCALE)
@@ -369,16 +411,16 @@ async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, 
 	const textHeight = mt.actualBoundingBoxDescent;
 	const frameHeight = textHeight + (3 * TABLE_SCALE);
 	roundRect(ctx,
-			  playerXCoord - (frameWidth / 2),
-			  playerYCoord + (ava_size / 4),
+			  player.avatar.x - (frameWidth / 2),
+			  player.avatar.y + (ava_size / 4),
 			  frameWidth,
 			  frameHeight,
 			  15 * TABLE_SCALE,
 			  true);
 	ctx.fillStyle = ('black');
-	ctx.fillText(playerName,
-				 playerXCoord - (textWidth / 2),
-				 playerYCoord + (ava_size / 4));
+	ctx.fillText(player.name,
+				 player.avatar.x - (textWidth / 2),
+				 player.avatar.y + (ava_size / 4));
 }
 
 exports.Table = Table;
@@ -416,7 +458,7 @@ exports.Table = Table;
 
 		// /* TEST */ // draw bet using player coords
 		// /* TEST */ const ava_size = Math.floor(128 * TABLE_SCALE);
-		// /* TEST */ let betXCoord = playerXCoord + ((playerXCoord > xCenterPoint) ? 0 - ((1) * ava_size): ((1/6) * ava_size));
+		// /* TEST */ let betXCoord = playerXCoord + ((playerXCoord > centerPoint.x) ? 0 - ((1) * ava_size): ((1/6) * ava_size));
 		// /* TEST */ let betYCoord = playerYCoord - (ava_size/8);
 		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
 		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');

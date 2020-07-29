@@ -17,6 +17,11 @@ class Round {
     }
 
     async deal_hands(){
+		await this._game.table.print_table(this._game.channel, `The game has begun!`)
+                        	  .catch((err) => {
+                        			console.log(`${console.log(functionName())}: Failed to print table.`);
+                            		this._game.end(err);
+                        	  }); // fatal error
         for(let player of this._game.players){
             let cards = this._game.deck.pick(2,"Hand");
             player.send_hand(cards, this._number);
@@ -24,7 +29,6 @@ class Round {
         }
         await this._game.channel.send(`__**Hand#${this._number}\n**__Hands have been dealt to all players. Good luck!`).then(msg => this._game.message = msg);
         let dealer = this._game.players[this._dealer_idx];
-        console.log(this._dealer_idx);
         this._game.channel.send(`Dealer is ${dealer.nick_or_name()}`);
     }
 
@@ -77,7 +81,6 @@ class Round {
     }
 
     /* UNTESTED */ async advance_betting_round(id_to_act){
-        console.log(id_to_act);
         while (!this.should_end_betting_round()) {
             let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
             this._game.channel.send(`**${move}**`).catch(console.error);

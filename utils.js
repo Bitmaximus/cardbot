@@ -89,7 +89,7 @@ function start_game(message, max_players){
 				let users = Array.from(collected.get('▶️').users.cache.values()).filter(user => user.id != bot_id);
 				let members = [];
 				for (let i = 0; i < users.length; i++) {members.push(await message.guild.members.fetch(users[i]))}
-				global.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack), message.channel);
+				/* GROSS */global/* EWWW */.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack), message.channel);
 				game.round.advance_state();
 			});
 		}
