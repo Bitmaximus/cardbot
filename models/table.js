@@ -21,6 +21,12 @@
 
 const {createCanvas, loadImage} = require('canvas');
 
+const canvasSize = [1301, 718]
+const CANVAS_SCALE = 1.1; // 1.1 seems nice
+const TABLE_SCALE = 1; // 1 seems nice
+const xCenterPoint = canvasSize[0] / 2; // centerpoint of the canvas on the x-axis before scaling
+const yCenterPoint = canvasSize[1] / 2;
+
 class Table{
     constructor(players){
         this._players = players;
@@ -154,10 +160,11 @@ async function draw_new_table(){
 	const table_is_not_initialized = (this._table_image == null);
 	let canvas;
 	let ctx;
+	
 
 	if (table_is_not_initialized) {
 		// generate canvas and load the table image.
-		canvas = createCanvas(1301, 718);
+		canvas = createCanvas(canvasSize[0] * CANVAS_SCALE, canvasSize[1] * CANVAS_SCALE);
 		ctx = canvas.getContext('2d');
 
 		this._table_image = await loadImage(`./other_images/poker_table_large.png`)
@@ -172,11 +179,12 @@ async function draw_new_table(){
 	}
 
 	// draw the table
-	ctx.drawImage(this._table_image, 0, 0);
+	ctx.drawImage(this._table_image, transformCoords(0, "x"), transformCoords(0, "y"), this._table_image.width * TABLE_SCALE, this._table_image.height * TABLE_SCALE);
 	
 	// draw the player avatars
-	let ava_size = 128;
 	for (let i = 0; i < this._players.length; i++){
+		let [playerXCoord, playerYCoord] = transformCoords(seat_coords[i][0], seat_coords[i][1]);
+
 		if (table_is_not_initialized) {
 			//Load the avatar for this player
 			let img = await loadImage((this._players[i].member.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"))
@@ -187,20 +195,7 @@ async function draw_new_table(){
 			this._player_images.push(img);
 		}
 
-		//Draw the avatar in the correct position and shape
-		ctx.save();
-		ctx.beginPath();
-		ctx.arc(seat_coords[i][0], seat_coords[i][1], ava_size/2, 0, Math.PI * 2);
-		ctx.clip();
-		ctx.drawImage(this._player_images[i], seat_coords[i][0]-ava_size/2, seat_coords[i][1]-ava_size/2, ava_size, ava_size);
-		ctx.restore();
-		
-		//Add nickname
-		ctx.fillStyle = ('rgb(194,193,190');
-		roundRect(ctx,seat_coords[i][0]-ava_size/2,seat_coords[i][1]+ava_size/4,5/4*ava_size,36,15,true);
-		ctx.font = 'bold 28px sans-serif';
-		ctx.fillStyle = ('black');
-		ctx.fillText((this._players[i].member.nickname)?this._players[i].member.nickname:this._players[i].member.user.username, seat_coords[i][0]-ava_size/2 + 12, seat_coords[i][1]+ava_size/4 + 27);
+		await drawAvatar(ctx, this._players[i].member, playerXCoord, playerYCoord);
 	}
 
 	this._cards_drawn = 0;
@@ -268,4 +263,188 @@ const pending_bet_coords = [
   [167,214]
 ]
 
+// preform a transformation on a point so that it is anchored to the center of the canvas and not the corner
+// accepts (originalXCoord, originalYCoord) or (originalCoord, string axis) as parameters
+function transformCoords(arg1, arg2) {
+	if (typeof(arg2) == "string") {
+		let originalCoord = arg1;
+		let coord = arg1;
+		let axis = arg2;
+		switch (axis) {
+			case 'x':
+				coord = ((originalCoord - xCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * xCenterPoint);
+				break;
+			case 'y':
+				coord = ((originalCoord - yCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * yCenterPoint);
+				break;
+			default:
+				console.log("transformCoords passed invalid parameter arg2: " + arg2);
+		}
+		return coord;
+	} else {
+		let originalXCoord = arg1;
+		let originalYCoord = arg2;
+		let xCoord = ((originalXCoord - xCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * xCenterPoint);
+		let yCoord = ((originalYCoord - yCenterPoint) * TABLE_SCALE) + (CANVAS_SCALE * yCenterPoint);
+		return [xCoord, yCoord];
+	}
+}
+
+async function drawAvatar(ctx, player, playerXCoord, playerYCoord, greenBorder, greyOut) {
+	if (greenBorder == undefined) greenBorder = false;
+	if (greyOut == undefined) greyOut = false;
+
+	const ava_size = Math.floor(128 * TABLE_SCALE);
+	const font_size = Math.floor(28 * TABLE_SCALE);
+
+	const playerAvatar = await loadImage((player.user.displayAvatarURL()).replace(/\.\w{3,4}$/i,".png"))
+							   .catch((err) => {
+									console.log(`${player.user.displayAvatarURL().replace(/\.\w{3,4}$/i,".png")} failed to load.`);
+									throw err;
+							   });
+
+	//Draw the avatar in the correct position and shape
+
+	// adding green border around the player avatar
+	if (greenBorder) {
+		// create a clipping region for the border to be drawn in
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(playerXCoord,
+				playerYCoord,
+				(ava_size / 2) * 1.1,
+				0,
+				Math.PI * 2);
+		ctx.clip();
+
+		// add green circle
+		ctx.fillStyle = 'green';
+		ctx.fillRect(playerXCoord - ((ava_size / 2) * 1.1),
+					 playerYCoord - ((ava_size / 2) * 1.1),
+					 ava_size * 1.1,
+					 ava_size * 1.1);
+		ctx.restore();
+	}
+
+	// create clipping region for avatar to be drawn in
+	ctx.save();
+	ctx.beginPath();
+	ctx.arc(playerXCoord,
+			playerYCoord,
+			(ava_size / 2),
+			0,
+			Math.PI * 2);
+	ctx.clip();
+
+	// apply a grey backdrop behind the player avatar
+	if (greyOut) {
+		ctx.fillStyle = 'grey';
+		ctx.fillRect(Math.floor(playerXCoord - (ava_size / 2)),
+					 Math.floor(playerYCoord - (ava_size / 2)),
+					 ava_size,
+					 ava_size);
+
+		// make the player avatar transparent
+		ctx.globalAlpha = 0.5; // 0.8 seems nice
+	}
+
+	ctx.drawImage(playerAvatar,
+				  playerXCoord - (ava_size / 2),
+				  playerYCoord - (ava_size / 2),
+				  ava_size,
+				  ava_size);
+	ctx.restore();
+	ctx.globalAlpha = 1;
+
+	//Add nameplate
+	ctx.fillStyle = ('rgb(194,193,190');
+	ctx.font = `bold ${font_size}px sans-serif`;
+	ctx.textBaseline = 'top';
+	const playerName = player.nickname ? player.nickname : player.user.username;
+	const mt = ctx.measureText(playerName);
+	const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
+	const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
+										? (5 * TABLE_SCALE)
+										: (((textWidth * 0.1) > (10 * TABLE_SCALE))
+											? (10 * TABLE_SCALE)
+											: (textWidth * 0.1)
+										)
+									);
+	const textHeight = mt.actualBoundingBoxDescent;
+	const frameHeight = textHeight + (3 * TABLE_SCALE);
+	roundRect(ctx,
+			  playerXCoord - (frameWidth / 2),
+			  playerYCoord + (ava_size / 4),
+			  frameWidth,
+			  frameHeight,
+			  15 * TABLE_SCALE,
+			  true);
+	ctx.fillStyle = ('black');
+	ctx.fillText(playerName,
+				 playerXCoord - (textWidth / 2),
+				 playerYCoord + (ava_size / 4));
+}
+
 exports.Table = Table;
+
+
+		// /* TEST */ // draw bet using preselected coords
+		// /* TEST */ let [betXCoord, betYCoord] = transformCoords(pending_bet_coords[i][0], pending_bet_coords[i][1]);
+		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
+		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');
+		// /* TEST */ ctx.font = `bold ${font_size}px sans-serif`;
+		// /* TEST */ ctx.textBaseline = 'top';
+		// /* TEST */ const mt = ctx.measureText("BET " + i);
+		// /* TEST */ const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
+		// /* TEST */ const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
+		// /* TEST */ 									? (5 * TABLE_SCALE)
+		// /* TEST */ 									: (((textWidth * 0.1) > (10 * TABLE_SCALE))
+		// /* TEST */ 										? (10 * scale)
+		// /* TEST */ 										: (textWidth * 0.1)
+		// /* TEST */ 									)
+		// /* TEST */ 								  );
+		// /* TEST */ const textHeight = mt.actualBoundingBoxDescent;
+		// /* TEST */ const frameHeight = textHeight + (3 * TABLE_SCALE);
+		// /* TEST */ roundRect(ctx,
+		// /* TEST */ 		   		  betXCoord,
+		// /* TEST */ 		   		  betYCoord,
+		// /* TEST */ 		   		  frameWidth,
+		// /* TEST */ 		   		  frameHeight,
+		// /* TEST */ 		   		  15 * TABLE_SCALE,
+		// /* TEST */ 		  		  true);
+		// /* TEST */ ctx.fillStyle = ('black');
+		// /* TEST */ ctx.fillText("BET " + i,
+		// /* TEST */ 			 	betXCoord,
+		// /* TEST */ 				betYCoord);
+
+
+		// /* TEST */ // draw bet using player coords
+		// /* TEST */ const ava_size = Math.floor(128 * TABLE_SCALE);
+		// /* TEST */ let betXCoord = playerXCoord + ((playerXCoord > xCenterPoint) ? 0 - ((1) * ava_size): ((1/6) * ava_size));
+		// /* TEST */ let betYCoord = playerYCoord - (ava_size/8);
+		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
+		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');
+		// /* TEST */ ctx.font = `bold ${font_size}px sans-serif`;
+		// /* TEST */ ctx.textBaseline = 'top';
+		// /* TEST */ const mt = ctx.measureText("BET " + i);
+		// /* TEST */ const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
+		// /* TEST */ const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
+		// /* TEST */ 									? (5 * TABLE_SCALE)
+		// /* TEST */ 									: (((textWidth * 0.1) > (10 * TABLE_SCALE))
+		// /* TEST */ 										? (10 * scale)
+		// /* TEST */ 										: (textWidth * 0.1)
+		// /* TEST */ 									)
+		// /* TEST */ 								  );
+		// /* TEST */ const textHeight = mt.actualBoundingBoxDescent;
+		// /* TEST */ const frameHeight = textHeight + (3 * TABLE_SCALE);
+		// /* TEST */ roundRect(ctx,
+		// /* TEST */ 		   		  betXCoord,
+		// /* TEST */ 		   		  betYCoord,
+		// /* TEST */ 		   		  frameWidth,
+		// /* TEST */ 		   		  frameHeight,
+		// /* TEST */ 		   		  15 * TABLE_SCALE,
+		// /* TEST */ 		  		  true);
+		// /* TEST */ ctx.fillStyle = ('black');
+		// /* TEST */ ctx.fillText("BET " + i,
+		// /* TEST */ 			 	betXCoord,
+		// /* TEST */ 				betYCoord);
