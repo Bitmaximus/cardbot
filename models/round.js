@@ -17,11 +17,6 @@ class Round {
     }
 
     async deal_hands(){
-		await this._game.table.print_table(this._game.channel, `The game has begun!`)
-                        	  .catch((err) => {
-                        			console.log(`${console.log(functionName())}: Failed to print table.`);
-                            		this._game.end(err);
-                        	  }); // fatal error
         for(let player of this._game.players){
             let cards = this._game.deck.pick(2,"Hand");
             player.send_hand(cards, this._number);
@@ -38,12 +33,6 @@ class Round {
         for(let card of this._game.deck.pick(3,"Flop")) this._board.push(card);
         await this._game.table.add_cards(this._board)
                         .catch((err) => this._game.end(err));
-
-        await this._game.table.print_table(this._game.channel, `**__Here comes the flop!__**`)
-                        .catch((err) => {
-                        	console.log(`${console.log(functionName())}: Failed to print table.`);
-                            this._game.end(err);
-                        }); // fatal error
     }
 
     async deal_turn(){
@@ -51,11 +40,6 @@ class Round {
 		this._board.push(this._game.deck.pick(1,"Turn")[0]);
 		await this._game.table.add_cards(this._board)
                         .catch((err) => game.end(err));
-		await this._game.table.print_table(this._game.channel, `**__Burn and TURN baby!!!__**`)
-                        .catch((err) => {
-                        	console.log(`${console.log(functionName())}: Failed to print table.`);
-                            this._game.end(err);
-                        }); // fatal error
     }
 
     async deal_river(){
@@ -63,11 +47,6 @@ class Round {
         this._board.push(this._game.deck.pick(1,"River")[0]);
 		await this._game.table.add_cards(this._board)
 						.catch((err) => this._game.end(err));
-		await this._game.table.print_table(this._game.channel, `**__This is it, the river!__**`)
-                        .catch((err) => {
-                        	console.log(`${console.log(functionName())}: Failed to print table.`);
-                            this._game.end(err);
-                        }); // fatal error
     }
 
     async start_showdown(){
@@ -80,9 +59,21 @@ class Round {
         this._game.channel.send(hand_results.sort(poker_sort));
     }
 
-    /* UNTESTED */ async advance_betting_round(id_to_act){
+    async advance_betting_round(id_to_act, messageToPrint){
         while (!this.should_end_betting_round()) {
-            let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
+			await this._game.table.update_player(this._game.players[id_to_act], "Active");
+			await this._game.table.print_table(this._game.channel, messageToPrint)
+								  .catch((err) => {
+				  					console.log(`${console.log(functionName())}: Failed to print table.`);
+				  					this._game.end(err);
+								  }); // fatal error;
+			let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
+			if (move.action_type != "Bet" && move.action_type != "Raise") {
+				await this._game.table.update_player(this._game.players[id_to_act], move.action_type);
+				//await this._game.table.print_table(this._game.channel);
+			} else {
+				// this is not yet implemented.
+			}
             this._game.channel.send(`**${move}**`).catch(console.error);
             this._hand_history.push(move);
 
@@ -100,22 +91,22 @@ class Round {
             switch(this._state){
                 case "PRE-FLOP":
                     await this.deal_hands();
-                    this.advance_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx);
+                    this.advance_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx, `The game has begun!`);
                     break;
                 case "FLOP": 
                     this._pot.collect_bets();
                     await this.deal_flop();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__Here comes the flop!__**`);
                     break;
                 case "TURN":
                     this._pot.collect_bets();
                     await this.deal_turn();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__Burn and TURN baby!!!__**`);
                     break;
                 case "RIVER":
                     this._pot.collect_bets();
                     await this.deal_river();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__This is it, the river!__**`);
                     break;
                 case "SHOW-DOWN": 
                     this._pot.collect_bets();
