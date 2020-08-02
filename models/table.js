@@ -3,13 +3,16 @@
 //
 //
 // These need to be displayed on the table
+// - new round leaving artifact of grey backdrop from folded player in the clean plate
+// - clean plate leaving artifact around border
 // - align the cards properly
 // - Dealer position (red tag over players on bottom of table, under players on top of table)
 // - An image with a small text box (like the one for player name) to display pending bets in front of each player) 
 // - A small text box to display main pot (same one could appear in the locations I specified in the file for side pots
 // - word-wrap on player names, scale player name text?
 //
-// Changes made: created test function with implemented scaling
+// Changes made:
+// - created test function with implemented scaling
 // - Dynamically resize player name border to fit larger player names.
 // - Added scalable canvas and objects
 // - finish cleaning up commentary
@@ -162,11 +165,13 @@ class Table{
 		switch(state){
 			case "Raise":
 			case "Bet":
-				// !!set bet value!! //
-
+				// !!set bet value!! // I think this should look something like this:
+				// ptPlayer.currentBet = bet;
+				// then add rendering bets to drawAvatar, it should always be drawn. drawAvatar can omit bets of 0
 				drawAvatar(ctx, ptPlayer, false);
 				break;
 			case "Fold":
+				// does this affect the current bet? ask Bit.
 				drawAvatar(ctx, ptPlayer, false, true);
 				break;
 			case "Check":
@@ -176,7 +181,10 @@ class Table{
 				drawAvatar(ctx, ptPlayer, true);
 				break;
 			case "Dealer":
-				//drawAvatar with dealer modifier
+				// drawAvatar with dealer modifier
+				// I might need to track the current dealer.
+				// so we can have this._dealer = ptPlayer;
+				// and drawAvatar will always check if someone needs to have the dealer icon added
 			default:
 				console.log("update_player passed invalid state: " + state);
 		}
@@ -286,7 +294,7 @@ function transformCoords(arg1, arg2) {
 			default:
 				console.log("transformCoords passed invalid parameter arg2: " + arg2);
 		}
-		return coord;
+		return Math.floor(coord);
 	
 	// if provided x and y coordinates
 	} else {
@@ -294,7 +302,7 @@ function transformCoords(arg1, arg2) {
 		let originalYCoord = arg2;
 		let xCoord = ((originalXCoord - centerPoint.x) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.x);
 		let yCoord = ((originalYCoord - centerPoint.y) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.y);
-		return [xCoord, yCoord];
+		return [Math.floor(xCoord), Math.floor(yCoord)];
 	}
 }
 
@@ -407,7 +415,7 @@ async function drawAvatar(ctx, player, greenBorder, greyOut) {
 		// clip using overlapping circles
 		ctx.clip("evenodd");
 
-		// add green circle, this creates a filled green circle for the avatar to be placed on top of
+		// draw green rectangle, which will display as a ring (because of the clip)
 		ctx.fillStyle = 'green';
 		ctx.fillRect(player.avatar.x - ((ava_size / 2) * 1.1),
 					 player.avatar.y - ((ava_size / 2) * 1.1),
@@ -430,14 +438,33 @@ async function drawAvatar(ctx, player, greenBorder, greyOut) {
 
 	// apply a grey backdrop behind the player avatar
 	if (greyOut) {
-		ctx.fillStyle = 'grey';
-		ctx.fillRect(player.avatar.x - (ava_size / 2),
-					 player.avatar.y - (ava_size / 2),
-					 ava_size,
-					 ava_size);
+
+		// create a new canvas object and draw the avatar to it
+		let c = createCanvas(ava_size, ava_size);
+		let greyMask = c.getContext("2d");
+		greyMask.drawImage(await player.avatar.img,
+						   0,
+						   0,
+						   ava_size,
+						   ava_size);
+
+		// draw a grey mask on top of the avatar (no grey will be applied to transparent regions)
+		greyMask.globalCompositeOperation = "source-atop";
+		greyMask.fillStyle = 'grey';
+		greyMask.fillRect(0,
+						  0,
+						  ava_size,
+						  ava_size);
+
+		// draw the mask to the table
+		ctx.drawImage(c,
+					  player.avatar.x - (ava_size / 2),
+					  player.avatar.y - (ava_size / 2),
+					  ava_size,
+					  ava_size);
 
 		// set the alpha before rendering the avatar to make it transparent
-		ctx.globalAlpha = 0.5; // 0.8 seems nice
+		ctx.globalAlpha = 0.4; // 0.8 seems nice
 	}
 
 	// draw the player avatar
@@ -492,7 +519,7 @@ async function draw_new_table(){
 	
 	// create or clear existing canvas and set ctx
 	if (table_is_not_initialized) {
-		canvas = createCanvas(canvasSize.x * CANVAS_SCALE, canvasSize.y * CANVAS_SCALE);
+		canvas = createCanvas(Math.floor(canvasSize.x * CANVAS_SCALE), Math.floor(canvasSize.y * CANVAS_SCALE));
 		ctx = canvas.getContext('2d');
 
 		this._table_image = await loadImage(`./other_images/poker_table_large.png`)
@@ -507,7 +534,11 @@ async function draw_new_table(){
 	}
 
 	// draw the table
-	ctx.drawImage(this._table_image, transformCoords(0, "x"), transformCoords(0, "y"), this._table_image.width * TABLE_SCALE, this._table_image.height * TABLE_SCALE);
+	ctx.drawImage(this._table_image,
+				  transformCoords(0, "x"),
+				  transformCoords(0, "y"),
+				  Math.floor(this._table_image.width * TABLE_SCALE),
+				  Math.floor(this._table_image.height * TABLE_SCALE));
 	
 	// draw the player avatars
 	for (let i = 0; i < this._players.length; i++){
@@ -520,8 +551,8 @@ async function draw_new_table(){
 		// save their game region
 		Object.assign(player.tableSpace, {x: transformCoords(gameRegions[i].x, "x"),
 										  y: transformCoords(gameRegions[i].y, "y"),
-										  width: gameRegions[i].width * TABLE_SCALE,
-										  height: gameRegions[i].height * TABLE_SCALE});
+										  width: Math.floor(gameRegions[i].width * TABLE_SCALE),
+										  height: Math.floor(gameRegions[i].height * TABLE_SCALE)});
 		player.tableSpace.img = createCanvas(player.tableSpace.width, player.tableSpace.height);
 		let c = player.tableSpace.img;
 		c.getContext('2d').drawImage(await canvas,

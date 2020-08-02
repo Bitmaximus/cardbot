@@ -176,11 +176,6 @@ var adminCommands = {
 }
 
 async function TEST(message, params) {
-	// figure out where Math.floor is required
-	// add commentary
-	// encapsulate the drawing of text and text frames, addText(string text, string font, 2DRenderObject ctx, string textColor, string frameColor, int centerX, int centerY)
-
-
 	/* REQUIRE IN HEADER */ const {createCanvas, loadImage} = require('canvas');
 	/* REQUIRE IN HEADER */ const seat_coords = [
 	/* REQUIRE IN HEADER */ 	//Seat 1-3 (Bottom of table)
@@ -216,7 +211,7 @@ async function TEST(message, params) {
 	/* REQUIRE IN HEADER */ ]
 
 	/* REQUIRE IN HEADER */ const canvasSize = [1301, 718]
-	/* REQUIRE IN HEADER */ const CANVAS_SCALE = 1.1; // 1.1 seems nice
+	/* REQUIRE IN HEADER */ const CANVAS_SCALE = 1; // 1.1 seems nice
 	/* REQUIRE IN HEADER */ const TABLE_SCALE = 1; // 1 seems nice
 
 
@@ -244,66 +239,6 @@ async function TEST(message, params) {
 		let playerYCoord = TEST_transformPoint(seat_coords[i][1], TABLE_SCALE, CANVAS_SCALE, yCenterPoint);
 
 		await TEST_drawAvatar(ctx, user, playerXCoord, playerYCoord, TABLE_SCALE);
-
-		// /* TEST */ // draw bet using preselected coords
-		// /* TEST */ let betXCoord = TEST_transformPoint(pending_bet_coords[i][0], TABLE_SCALE, CANVAS_SCALE, xCenterPoint);
-		// /* TEST */ let betYCoord = TEST_transformPoint(pending_bet_coords[i][1], TABLE_SCALE, CANVAS_SCALE, yCenterPoint);
-		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
-		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');
-		// /* TEST */ ctx.font = `bold ${font_size}px sans-serif`;
-		// /* TEST */ ctx.textBaseline = 'top';
-		// /* TEST */ const mt = ctx.measureText("BET " + i);
-		// /* TEST */ const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
-		// /* TEST */ const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
-		// /* TEST */ 									? (5 * TABLE_SCALE)
-		// /* TEST */ 									: (((textWidth * 0.1) > (10 * TABLE_SCALE))
-		// /* TEST */ 										? (10 * scale)
-		// /* TEST */ 										: (textWidth * 0.1)
-		// /* TEST */ 									)
-		// /* TEST */ 								  );
-		// /* TEST */ const textHeight = mt.actualBoundingBoxDescent;
-		// /* TEST */ const frameHeight = textHeight + (3 * TABLE_SCALE);
-		// /* TEST */ TEST_roundRect(ctx,
-		// /* TEST */ 		   		  betXCoord,
-		// /* TEST */ 		   		  betYCoord,
-		// /* TEST */ 		   		  frameWidth,
-		// /* TEST */ 		   		  frameHeight,
-		// /* TEST */ 		   		  15 * TABLE_SCALE,
-		// /* TEST */ 		  		  true);
-		// /* TEST */ ctx.fillStyle = ('black');
-		// /* TEST */ ctx.fillText("BET " + i,
-		// /* TEST */ 			 	betXCoord,
-		// /* TEST */ 				betYCoord);
-		// /* TEST */ // draw bet using player coords
-		// /* TEST */ const ava_size = Math.floor(128 * TABLE_SCALE);
-		// /* TEST */ let betXCoord = playerXCoord + ((playerXCoord > xCenterPoint) ? 0 - ((1) * ava_size): ((1/6) * ava_size));
-		// /* TEST */ let betYCoord = playerYCoord - (ava_size/8);
-		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
-		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');
-		// /* TEST */ ctx.font = `bold ${font_size}px sans-serif`;
-		// /* TEST */ ctx.textBaseline = 'top';
-		// /* TEST */ const mt = ctx.measureText("BET " + i);
-		// /* TEST */ const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
-		// /* TEST */ const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
-		// /* TEST */ 									? (5 * TABLE_SCALE)
-		// /* TEST */ 									: (((textWidth * 0.1) > (10 * TABLE_SCALE))
-		// /* TEST */ 										? (10 * scale)
-		// /* TEST */ 										: (textWidth * 0.1)
-		// /* TEST */ 									)
-		// /* TEST */ 								  );
-		// /* TEST */ const textHeight = mt.actualBoundingBoxDescent;
-		// /* TEST */ const frameHeight = textHeight + (3 * TABLE_SCALE);
-		// /* TEST */ TEST_roundRect(ctx,
-		// /* TEST */ 		   		  betXCoord,
-		// /* TEST */ 		   		  betYCoord,
-		// /* TEST */ 		   		  frameWidth,
-		// /* TEST */ 		   		  frameHeight,
-		// /* TEST */ 		   		  15 * TABLE_SCALE,
-		// /* TEST */ 		  		  true);
-		// /* TEST */ ctx.fillStyle = ('black');
-		// /* TEST */ ctx.fillText("BET " + i,
-		// /* TEST */ 			 	betXCoord,
-		// /* TEST */ 				betYCoord);
 	}
 	// draw_new_table()
 
