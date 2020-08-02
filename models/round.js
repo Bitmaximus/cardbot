@@ -102,12 +102,12 @@ class Round {
                 case "TURN":
                     this._pot.collect_bets();
                     await this.deal_turn();
-                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__Burn and turn baby__**`);
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__Burn and turn baby!__**`);
                     break;
                 case "RIVER":
                     this._pot.collect_bets();
                     await this.deal_river();
-                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__This is it, the rive!__**`);
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__This is it, the river!__**`);
                     break;
                 case "SHOW-DOWN": 
                     this._pot.collect_bets();
