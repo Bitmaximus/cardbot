@@ -78,31 +78,18 @@ class Round {
         this._game.channel.send(hand_results.sort(poker_sort));
     }
 
-    /* UNTESTED */ async advance_betting_round(id_to_act){
-        console.log(id_to_act);
+    async start_betting_round(id_to_act){
+        //Main loop for betting round
         while (!this.should_end_betting_round()) {
             let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
             this._game.channel.send(`**${move}**`).catch(console.error);
             this._hand_history.push(move);
-
             id_to_act = mod(++id_to_act, this._game.players.length);
         }
+        //Betting round over
         this.advance_state();
         this.hand_history = [];
     }
-    
-
-    // async advance_betting_round(id_to_act){
-    //     this._game.players[id_to_act].prompt_move().then((move) => {this.onPlayerMove(id_to_act, move)});
-    // }
-
-    // onPlayerMove(actor_id, move){
-    //     this._game.channel.send(`**${move}**`);
-    //     this._hand_history.push(move);
-    //     if (this.should_end_betting_round()) {this.advance_state();
-    //         this.hand_history = [];}
-    //     else this.advance_betting_round(actor_id-1 % this._game.players.length);
-    // }
 
     should_end_betting_round(){return (this._hand_history.length >= this._game.players.length);}
 
@@ -112,22 +99,22 @@ class Round {
             switch(this._state){
                 case "PRE-FLOP":
                     await this.deal_hands();
-                    this.advance_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx);
+                    this.start_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx);
                     break;
                 case "FLOP": 
                     this._pot.collect_bets();
                     await this.deal_flop();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
                     break;
                 case "TURN":
                     this._pot.collect_bets();
                     await this.deal_turn();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
                     break;
                 case "RIVER":
                     this._pot.collect_bets();
                     await this.deal_river();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
                     break;
                 case "SHOW-DOWN": 
                     this._pot.collect_bets();
