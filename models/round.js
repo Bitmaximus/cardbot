@@ -24,7 +24,6 @@ class Round {
         }
         await this._game.channel.send(`__**Hand#${this._number}\n**__Hands have been dealt to all players. Good luck!`).then(msg => this._game.message = msg);
         let dealer = this._game.players[this._dealer_idx];
-        console.log(this._dealer_idx);
         this._game.channel.send(`Dealer is ${dealer.nick_or_name()}`);
     }
 
@@ -32,40 +31,22 @@ class Round {
         // select new cards and draw them to the table.
         this._game.deck.pick(1,"Muck");
         for(let card of this._game.deck.pick(3,"Flop")) this._board.push(card);
-        await this._game.table.draw_cards(this._board)
+        await this._game.table.add_cards(this._board)
                         .catch((err) => this._game.end(err));
-
-        await this._game.table.print_table(this._game.channel, `**__Here comes the flop!__**`)
-                        .catch((err) => {
-                        	console.log(`${console.log(functionName())}: Failed to print table.`);
-                            this._game.end(err);
-                        }); // fatal error
     }
 
     async deal_turn(){
-        this._game.deck.pick(1,"Muck");
+        game.deck.pick(1,"Muck");
 		this._board.push(this._game.deck.pick(1,"Turn")[0]);
-		await this._game.table.draw_cards(this._board)
-                        .catch((err) => this._game.end(err));
-        // await this._game.message.delete();
-		await this._game.table.print_table(this._game.channel, `**__Burn and TURN baby!!!__**`)
-                        .catch((err) => {
-                        	console.log(`${console.log(functionName())}: Failed to print table.`);
-                            this._game.end(err);
-                        }); // fatal error
+		await this._game.table.add_cards(this._board)
+                        .catch((err) => game.end(err));
     }
 
     async deal_river(){
         this._game.deck.pick(1,"Muck");
         this._board.push(this._game.deck.pick(1,"River")[0]);
-		await this._game.table.draw_cards(this._board)
+		await this._game.table.add_cards(this._board)
 						.catch((err) => this._game.end(err));
-		// await this._game.message.delete();
-		await this._game.table.print_table(this._game.channel, `**__This is it, the river!__**`)
-                        .catch((err) => {
-                        	console.log(`${console.log(functionName())}: Failed to print table.`);
-                            this._game.end(err);
-                        }); // fatal error
     }
 
     async start_showdown(){
@@ -81,7 +62,19 @@ class Round {
     async start_betting_round(id_to_act){
         //Main loop for betting round
         while (!this.should_end_betting_round()) {
-            let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
+			await this._game.table.update_player(this._game.players[id_to_act], "Active");
+			await this._game.table.print_table(this._game.channel, messageToPrint)
+								  .catch((err) => {
+				  					console.log(`${console.log(functionName())}: Failed to print table.`);
+				  					this._game.end(err);
+								  }); // fatal error;
+			let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
+			if (move.action_type != "Bet" && move.action_type != "Raise") {
+				await this._game.table.update_player(this._game.players[id_to_act], move.action_type);
+				//await this._game.table.print_table(this._game.channel);
+			} else {
+				// this is not yet implemented.
+			}
             this._game.channel.send(`**${move}**`).catch(console.error);
             this._hand_history.push(move);
             id_to_act = mod(++id_to_act, this._game.players.length);
@@ -104,7 +97,7 @@ class Round {
                 case "FLOP": 
                     this._pot.collect_bets();
                     await this.deal_flop();
-                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__Here comes the flop!__**`);
                     break;
                 case "TURN":
                     this._pot.collect_bets();
