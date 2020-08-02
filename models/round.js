@@ -59,7 +59,7 @@ class Round {
         this._game.channel.send(hand_results.sort(poker_sort));
     }
 
-    async start_betting_round(id_to_act){
+    async start_betting_round(id_to_act, messageToPrint){
         //Main loop for betting round
         while (!this.should_end_betting_round()) {
 			await this._game.table.update_player(this._game.players[id_to_act], "Active");
@@ -97,17 +97,17 @@ class Round {
                 case "FLOP": 
                     this._pot.collect_bets();
                     await this.deal_flop();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__Here comes the flop!__**`);
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__Here comes the flop!__**`);
                     break;
                 case "TURN":
                     this._pot.collect_bets();
                     await this.deal_turn();
-                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__Burn and turn baby__**`);
                     break;
                 case "RIVER":
                     this._pot.collect_bets();
                     await this.deal_river();
-                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__This is it, the rive!__**`);
                     break;
                 case "SHOW-DOWN": 
                     this._pot.collect_bets();
