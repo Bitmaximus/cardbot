@@ -59,7 +59,8 @@ class Round {
         this._game.channel.send(hand_results.sort(poker_sort));
     }
 
-    async advance_betting_round(id_to_act, messageToPrint){
+    async start_betting_round(id_to_act){
+        //Main loop for betting round
         while (!this.should_end_betting_round()) {
 			await this._game.table.update_player(this._game.players[id_to_act], "Active");
 			await this._game.table.print_table(this._game.channel, messageToPrint)
@@ -76,9 +77,9 @@ class Round {
 			}
             this._game.channel.send(`**${move}**`).catch(console.error);
             this._hand_history.push(move);
-
             id_to_act = mod(++id_to_act, this._game.players.length);
         }
+        //Betting round over
         this.advance_state();
         this.hand_history = [];
     }
@@ -91,7 +92,7 @@ class Round {
             switch(this._state){
                 case "PRE-FLOP":
                     await this.deal_hands();
-                    this.advance_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx, `The game has begun!`);
+                    this.start_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx);
                     break;
                 case "FLOP": 
                     this._pot.collect_bets();
@@ -101,12 +102,12 @@ class Round {
                 case "TURN":
                     this._pot.collect_bets();
                     await this.deal_turn();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__Burn and TURN baby!!!__**`);
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
                     break;
                 case "RIVER":
                     this._pot.collect_bets();
                     await this.deal_river();
-                    this.advance_betting_round(mod(this._dealer_idx+1, num_players), `**__This is it, the river!__**`);
+                    this.start_betting_round(mod(this._dealer_idx+1, num_players));
                     break;
                 case "SHOW-DOWN": 
                     this._pot.collect_bets();

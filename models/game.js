@@ -22,7 +22,7 @@ class Game{
     start_new_round(){
         this._deck.reset();
         this._table.reset();
-        this._round = new Round(this._round.number+1,this._round.dealer_idx-1 % this._players.length, this);
+        this._round = new Round(this._round.number+1, mod(this._round.dealer_idx+1,this._players.length), this);
         this._round.advance_state();
     }
 
@@ -64,5 +64,8 @@ function getRandomIntInclusive(min, max) {
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive 
 }
+
+function mod(n, m){return ((n % m) + m) % m}
+
 
 exports.Game = Game;
