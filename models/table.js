@@ -36,28 +36,28 @@ const centerPoint  = {x: canvasSize.x / 2,
 
 // coordinates for center points of player avatars, (x, y)
 const seat_coords = [
-	[351,653],  //0
-	[71,530],	//1
-	[71,214],   //2
-	[351,60],   //3
-	[651,60],   //4
-	[951,60],   //5
-	[1218,214], //6
-	[1218,530], //7
-	[951,653],  //8
-	[651,653]   //9
+	{x: 351,  y: 653},	//0
+	{x: 71,	  y: 530},	//1
+	{x: 71,   y: 214},	//2
+	{x: 351,  y: 60},	//3
+	{x: 651,  y: 60},	//4
+	{x: 951,  y: 60},	//5
+	{x: 1218, y: 214},	//6
+	{x: 1218, y: 530},	//7
+	{x: 951,  y: 653},	//8
+	{x: 651,  y: 653}	//9
 ]
 
 // coordinates for the top left corner of the cards in the board (on the table), (x, y)
 const card_coords = [
 	//Flop
-	[290,259],
-	[430,259],
-	[570,259],
+	{x: 290, y: 259},
+	{x: 430, y: 259},
+	{x: 570, y: 259},
 	//Turn
-	[710,259],
+	{x: 710, y: 259},
 	//River
-	[850,259]
+	{x: 850, y: 259}
 ]
 
 // coordinates and dimensions for each player's table space
@@ -111,7 +111,7 @@ class Table{
     constructor(players){
 		this._players = []
 		for (let i = 0; i < players.length; i++) {
-			let [playerXCoord, playerYCoord] = transformCoords(seat_coords[i][0], seat_coords[i][1]);
+			let [playerXCoord, playerYCoord] = transformCoords(seat_coords[i].x, seat_coords[i].y);
 			this._players.push(new PlayerTable(players[i], playerXCoord, playerYCoord));
 		}
 
@@ -141,7 +141,7 @@ class Table{
 										console.log(`table.add_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
 										throw err;
 									});
-			ctx.drawImage(card_image, transformCoords(card_coords[i][0], "x"), transformCoords(card_coords[i][1], "y"), cardWidth * TABLE_SCALE, cardHeight * TABLE_SCALE);
+			ctx.drawImage(card_image, transformCoords(card_coords[i].x, "x"), transformCoords(card_coords[i].y, "y"), cardWidth * TABLE_SCALE, cardHeight * TABLE_SCALE);
 			this._cards_drawn++;
 		}
 	}
@@ -382,15 +382,8 @@ async function drawAvatar(ctx, player, greenBorder, greyOut) {
 	if (greyOut == undefined) greyOut = false;
 
 	if (player.tableSpace.img != null) {
-		ctx.clearRect(player.tableSpace.x,
-					  player.tableSpace.y,
-					  player.tableSpace.width,
-					  player.tableSpace.height);
-		ctx.drawImage(player.tableSpace.img,
-					  player.tableSpace.x,
-					  player.tableSpace.y,
-					  player.tableSpace.width,
-					  player.tableSpace.height);
+		ctx.clearRect(player.tableSpace.x,player.tableSpace.y,player.tableSpace.width,player.tableSpace.height);
+		ctx.drawImage(player.tableSpace.img,player.tableSpace.x,player.tableSpace.y,player.tableSpace.width,player.tableSpace.height);
 	}
 
 	const ava_size = Math.floor(128 * TABLE_SCALE);

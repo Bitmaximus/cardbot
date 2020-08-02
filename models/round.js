@@ -71,7 +71,6 @@ class Round {
 			let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
 			if (move.action_type != "Bet" && move.action_type != "Raise") {
 				await this._game.table.update_player(this._game.players[id_to_act], move.action_type);
-				//await this._game.table.print_table(this._game.channel);
 			} else {
 				// this is not yet implemented.
 			}
