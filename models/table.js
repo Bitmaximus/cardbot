@@ -4,9 +4,6 @@
 //
 // These need to be displayed on the table
 // - revise/improve documentation for functions (particularly update_player)
-// - align the cards properly
-// - Dealer position (red tag over players on bottom of table, under players on top of table)
-// - An image with a small text box (like the one for player name) to display pending bets in front of each player) 
 // - A small text box to display main pot (same one could appear in the locations I specified in the file for side pots
 // - word-wrap on player names, scale player name text?
 //
@@ -46,9 +43,9 @@ const CARD_COORDS = [
 	{ x: 430, y: 259 },
 	{ x: 570, y: 259 },
 	//Turn
-	{ x: 710, y: 259 },
+	{ x: 715, y: 259 },
 	//River
-	{ x: 850, y: 259 }
+	{ x: 860, y: 259 }
 ]
 
 // coordinates for the players individual pending bets (top left corner)
