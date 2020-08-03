@@ -9,7 +9,7 @@ const RED = "RED";
 const GREEN = "GREEN";
 const BLUE = 3447003;
 const YELLOW = "#dde61a";
-const bot_id = '727656097195884615';
+// const bot_id = '727656097195884615';
 
 const DEFAULTPREFIX = '/';
 const ADMINPREFIX = '!';
@@ -83,10 +83,10 @@ function start_game(message, max_players){
 	message.channel.send("React to enter the tournament").then(
 		async (msg) => {
 			await msg.react('▶️').catch(console.error);
-			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && user.id !== bot_id), {max: max_players, time: 500000});
+			const collector = await msg.createReactionCollector((reaction, user) => (reaction.emoji.name === '▶️' && !user.bot), {max: max_players, time: 500000});
 			
 			collector.on('end', async (collected) => {
-				let users = Array.from(collected.get('▶️').users.cache.values()).filter(user => user.id != bot_id);
+				let users = Array.from(collected.get('▶️').users.cache.values()).filter(user => !user.bot);
 				let members = [];
 				for (let i = 0; i < users.length; i++) {members.push(await message.guild.members.fetch(users[i]))}
 				/* GROSS */global/* EWWW */.game = new Game(members, new GameStructure(default_blinds, default_blind_timer, default_starting_stack), message.channel);

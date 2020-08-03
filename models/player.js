@@ -43,8 +43,9 @@ class Player {
                             const sizing_collector = game.channel.createMessageCollector(m => (m.author.id == this._member.user.id), { max: 1, time: 60000 });
                             //What we do when player specifies a bet size
                             sizing_collector.on('end', async (msgs) => {
+								let content = msgs.first().content;
                                 msgs.first().delete();
-                                resolve(new Move("Bet", this, msgs.first().content));
+                                resolve(new Move("Bet", this, content));
                             });
                         break;
 

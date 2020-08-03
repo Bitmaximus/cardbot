@@ -69,11 +69,7 @@ class Round {
 				  					this._game.end(err);
 								  }); // fatal error;
 			let move = await this._game.players[id_to_act].prompt_move().catch(console.error);
-			if (move.action_type != "Bet" && move.action_type != "Raise") {
-				await this._game.table.update_player(this._game.players[id_to_act], move.action_type);
-			} else {
-				// this is not yet implemented.
-			}
+			await this._game.table.update_player(this._game.players[id_to_act], move.action_type, move.amount);
             this._game.channel.send(`**${move}**`).catch(console.error);
             this._hand_history.push(move);
             id_to_act = mod(++id_to_act, this._game.players.length);
@@ -94,22 +90,26 @@ class Round {
                     this.start_betting_round((num_players>2)? mod(this._dealer_idx+3, num_players) : this._dealer_idx);
                     break;
                 case "FLOP": 
-                    this._pot.collect_bets();
+					this._pot.collect_bets();
+					this._game.table.collect_bets();
                     await this.deal_flop();
                     this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__Here comes the flop!__**`);
                     break;
                 case "TURN":
                     this._pot.collect_bets();
+					this._game.table.collect_bets();
                     await this.deal_turn();
                     this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__Burn and turn baby!__**`);
                     break;
                 case "RIVER":
                     this._pot.collect_bets();
+					this._game.table.collect_bets();
                     await this.deal_river();
                     this.start_betting_round(mod(this._dealer_idx+1, num_players), `**__This is it, the river!__**`);
                     break;
                 case "SHOW-DOWN": 
                     this._pot.collect_bets();
+					this._game.table.collect_bets();
                     await this.start_showdown();
                     this._game.start_new_round();
                     break;

@@ -3,21 +3,12 @@
 //
 //
 // These need to be displayed on the table
-// - new round leaving artifact of grey backdrop from folded player in the clean plate
-// - clean plate leaving artifact around border
+// - revise/improve documentation for functions (particularly update_player)
 // - align the cards properly
 // - Dealer position (red tag over players on bottom of table, under players on top of table)
 // - An image with a small text box (like the one for player name) to display pending bets in front of each player) 
 // - A small text box to display main pot (same one could appear in the locations I specified in the file for side pots
 // - word-wrap on player names, scale player name text?
-//
-// Changes made:
-// - created test function with implemented scaling
-// - Dynamically resize player name border to fit larger player names.
-// - Added scalable canvas and objects
-// - finish cleaning up commentary
-// - added update_player which renders a player folded, raising or active
-// - added gameRegions which are saved as clean plates for rendering the player areas
 //
 /**********************************************************************************************************************************/
 
@@ -29,13 +20,13 @@ const {Player} = require('./player.js');
 // rendering settings
 const CANVAS_SCALE = 1.1; // 1.1 seems nice
 const TABLE_SCALE  = 1; // 1 seems nice
-const canvasSize   = {x: 1301,
+const CANVAS_SIZE   = {x: 1301,
 					  y: 718};
-const centerPoint  = {x: canvasSize.x / 2,
-					  y: canvasSize.y / 2}; // centerpoint of the canvas
+const CENTER_POINT  = {x: CANVAS_SIZE.x / 2,
+					   y: CANVAS_SIZE.y / 2}; // CENTER_POINT of the canvas
 
-// coordinates for center points of player avatars, (x, y)
-const seat_coords = [
+// coordinates for center points of player avatars
+const SEAT_COORDS = [
 	{x: 351,  y: 653},	//0
 	{x: 71,	  y: 530},	//1
 	{x: 71,   y: 214},	//2
@@ -48,8 +39,8 @@ const seat_coords = [
 	{x: 651,  y: 653}	//9
 ]
 
-// coordinates for the top left corner of the cards in the board (on the table), (x, y)
-const card_coords = [
+// coordinates for the top left corner of the cards in the board (on the table)
+const CARD_COORDS = [
 	//Flop
 	{x: 290, y: 259},
 	{x: 430, y: 259},
@@ -60,8 +51,26 @@ const card_coords = [
 	{x: 850, y: 259}
 ]
 
+// coordinates for the players individual pending bets
+const PENDING_BET_COORDS = [
+	//Stack 1-3 (Bottom of table)
+	{x: 319,	y: 557},
+	{x: 619,	y: 557},
+	{x: 919,	y: 557},
+	//Stack 4-5 (Right of table)
+	{x: 1122,	y: 530},
+	{x: 1122,	y: 214},
+	//Stack 6-8 (Top of table)
+	{x: 919,	y: 156},
+	{x: 619,	y: 156},
+	{x: 319,	y: 156},
+	//Stack 9-10 (Left of table)
+	{x: 167,	y: 530},	
+	{x: 167,	y: 214}
+]
+
 // coordinates and dimensions for each player's table space
-const gameRegions = [
+const GAME_REGIONS = [
 	{x: 221, // 0
 	 y: 524,
 	 width: 279,
@@ -111,8 +120,9 @@ class Table{
     constructor(players){
 		this._players = []
 		for (let i = 0; i < players.length; i++) {
-			let [playerXCoord, playerYCoord] = transformCoords(seat_coords[i].x, seat_coords[i].y);
-			this._players.push(new PlayerTable(players[i], playerXCoord, playerYCoord));
+			let [playerXCoord, playerYCoord] = transformCoords(SEAT_COORDS[i].x, SEAT_COORDS[i].y);
+			let [playerBetXCoord, playerBetYCoord] = transformCoords(PENDING_BET_COORDS[i].x, PENDING_BET_COORDS[i].y);
+			this._players.push(new PlayerTable(players[i], playerXCoord, playerYCoord, playerBetXCoord, playerBetYCoord));
 		}
 
 		this._table_image = null; // loaded image file of the blank table.
@@ -141,7 +151,7 @@ class Table{
 										console.log(`table.add_cards(): Image failed to load: "${cards[i].rank.name}_of_${cards[i].suit.fullname.toLowerCase()}.png"`);
 										throw err;
 									});
-			ctx.drawImage(card_image, transformCoords(card_coords[i].x, "x"), transformCoords(card_coords[i].y, "y"), cardWidth * TABLE_SCALE, cardHeight * TABLE_SCALE);
+			ctx.drawImage(card_image, transformCoords(CARD_COORDS[i].x, "x"), transformCoords(CARD_COORDS[i].y, "y"), cardWidth * TABLE_SCALE, cardHeight * TABLE_SCALE);
 			this._cards_drawn++;
 		}
 	}
@@ -165,9 +175,7 @@ class Table{
 		switch(state){
 			case "Raise":
 			case "Bet":
-				// !!set bet value!! // I think this should look something like this:
-				// ptPlayer.currentBet = bet;
-				// then add rendering bets to drawAvatar, it should always be drawn. drawAvatar can omit bets of 0
+				ptPlayer.currentBet.amount = bet;
 				drawAvatar(ctx, ptPlayer, false);
 				break;
 			case "Fold":
@@ -188,6 +196,22 @@ class Table{
 			default:
 				console.log("update_player passed invalid state: " + state);
 		}
+	}
+
+	/**
+	 * sets all player bets to 0 and adds their bets to the pot
+	 * redraws the table
+	 * 
+	 */
+	async collect_bets(){
+		const ctx = await this._tableCanvas.then((canvas) => canvas.getContext('2d'));
+		
+		for (let i = 0; (i < this._players.length) && (this._players[i].member != player.member); i++){
+			this._players[i].currentBet.value = 0;
+			drawAvatar(ctx, this._players[i], false, false)
+		}
+
+		// this will need to add the bets to the pot and potentially redraw the entire table.
 	}
 
 	/**
@@ -241,7 +265,7 @@ class PlayerTable extends Player {
 	 * @param {number} xCoord player avatar's x-coordinate (center point), transformed to the scale of the canvas and table
 	 * @param {number} yCoord player avatar's y-coordinate (center point), transformed to the scale of the canvas and table
 	 */
-	constructor(player, xCoord, yCoord){
+	constructor(player, xCoord, yCoord, betXCoord, betYCoord){
 		super(player.member, player.seat_idx, player.stack);
 		this._name = player.member.nickname ? player.member.nickname : player.member.user.username; // {string} either the nickname or username used to identify the player
 		this._tableSpace = {img: null,
@@ -256,9 +280,15 @@ class PlayerTable extends Player {
 							 }),
 						x: xCoord,
 						y: yCoord};
+		this._currentBet = {amount: 0,
+							x: betXCoord,
+							y: betYCoord}
 	}
 
 	// accessor functions //
+	get currentBet(){return this._currentBet}
+	set currentBet(value){this._currentBet = value}
+
 	get tableSpace(){return this._tableSpace}
 	set tableSpace(value){this._tableSpace = value}
 
@@ -286,10 +316,10 @@ function transformCoords(arg1, arg2) {
 		let axis = arg2;
 		switch (axis) {
 			case 'x':
-				coord = ((originalCoord - centerPoint.x) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.x);
+				coord = ((originalCoord - CENTER_POINT.x) * TABLE_SCALE) + (CANVAS_SCALE * CENTER_POINT.x);
 				break;
 			case 'y':
-				coord = ((originalCoord - centerPoint.y) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.y);
+				coord = ((originalCoord - CENTER_POINT.y) * TABLE_SCALE) + (CANVAS_SCALE * CENTER_POINT.y);
 				break;
 			default:
 				console.log("transformCoords passed invalid parameter arg2: " + arg2);
@@ -300,8 +330,8 @@ function transformCoords(arg1, arg2) {
 	} else {
 		let originalXCoord = arg1;
 		let originalYCoord = arg2;
-		let xCoord = ((originalXCoord - centerPoint.x) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.x);
-		let yCoord = ((originalYCoord - centerPoint.y) * TABLE_SCALE) + (CANVAS_SCALE * centerPoint.y);
+		let xCoord = ((originalXCoord - CENTER_POINT.x) * TABLE_SCALE) + (CANVAS_SCALE * CENTER_POINT.x);
+		let yCoord = ((originalYCoord - CENTER_POINT.y) * TABLE_SCALE) + (CANVAS_SCALE * CENTER_POINT.y);
 		return [Math.floor(xCoord), Math.floor(yCoord)];
 	}
 }
@@ -378,6 +408,7 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
  * @param {boolean} greyOut (optional) if true the player avatar will be greyed out
  */
 async function drawAvatar(ctx, player, greenBorder, greyOut) {
+	// add drawing of bets, omitting bets of 0
 	if (greenBorder == undefined) greenBorder = false;
 	if (greyOut == undefined) greyOut = false;
 
@@ -497,6 +528,25 @@ async function drawAvatar(ctx, player, greenBorder, greyOut) {
 	ctx.fillText(player.name,
 				 player.avatar.x - (textWidth / 2),
 				 player.avatar.y + (ava_size / 4));
+
+	// add the bet
+	if (player.currentBet.amount) {
+		const bet_mt = ctx.measureText("BET " + player.currentBet.amount);
+		const betWidth = bet_mt.actualBoundingBoxRight + bet_mt.actualBoundingBoxLeft;
+
+		ctx.fillStyle = ('rgb(194,193,190');
+		roundRect(ctx,
+				  player.currentBet.x,
+				  player.currentBet.y,
+				  betWidth,
+				  frameHeight,
+				  15 * TABLE_SCALE,
+				  true);
+		ctx.fillStyle = ('black');
+		ctx.fillText("BET" + player.currentBet.amount,
+					 player.currentBet.x,
+					 player.currentBet.y);
+	}
 }
 
 /**
@@ -512,7 +562,7 @@ async function draw_new_table(){
 	
 	// create or clear existing canvas and set ctx
 	if (table_is_not_initialized) {
-		canvas = createCanvas(Math.floor(canvasSize.x * CANVAS_SCALE), Math.floor(canvasSize.y * CANVAS_SCALE));
+		canvas = createCanvas(Math.floor(CANVAS_SIZE.x * CANVAS_SCALE), Math.floor(CANVAS_SIZE.y * CANVAS_SCALE));
 		ctx = canvas.getContext('2d');
 
 		this._table_image = await loadImage(`./other_images/poker_table_large.png`)
@@ -542,10 +592,10 @@ async function draw_new_table(){
 		await drawAvatar(ctx, player);
 
 		// save their game region
-		Object.assign(player.tableSpace, {x: transformCoords(gameRegions[i].x, "x"),
-										  y: transformCoords(gameRegions[i].y, "y"),
-										  width: Math.floor(gameRegions[i].width * TABLE_SCALE),
-										  height: Math.floor(gameRegions[i].height * TABLE_SCALE)});
+		Object.assign(player.tableSpace, {x: transformCoords(GAME_REGIONS[i].x, "x"),
+										  y: transformCoords(GAME_REGIONS[i].y, "y"),
+										  width: Math.floor(GAME_REGIONS[i].width * TABLE_SCALE),
+										  height: Math.floor(GAME_REGIONS[i].height * TABLE_SCALE)});
 		player.tableSpace.img = createCanvas(player.tableSpace.width, player.tableSpace.height);
 		let c = player.tableSpace.img;
 		c.getContext('2d').drawImage(await canvas,
@@ -577,65 +627,11 @@ const pot_coords = [
 	[290,455]
 ]
 
-//Not yet implemented
-const pending_bet_coords = [
-	//Stack 1-3 (Bottom of table)
-	[319,557],
-	[619,557],
-	[919,557],
-	//Stack 4-5 (Right of table)
-	[1122,530],
-	[1122,214],
-	//Stack 6-8 (Top of table)
-	[919,156],
-	[619,156],
-	[319,156],
-	//Stack 9-10 (Left of table)
-	[167,530],	
-	[167,214]
-]
-
 exports.Table = Table;
 
 
 		// /* TEST */ // draw bet using preselected coords
-		// /* TEST */ let [betXCoord, betYCoord] = transformCoords(pending_bet_coords[i][0], pending_bet_coords[i][1]);
-		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
-		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');
-		// /* TEST */ ctx.font = `bold ${font_size}px sans-serif`;
-		// /* TEST */ ctx.textBaseline = 'top';
-		// /* TEST */ const mt = ctx.measureText("BET " + i);
-		// /* TEST */ const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
-		// /* TEST */ const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
-		// /* TEST */ 									? (5 * TABLE_SCALE)
-		// /* TEST */ 									: (((textWidth * 0.1) > (10 * TABLE_SCALE))
-		// /* TEST */ 										? (10 * scale)
-		// /* TEST */ 										: (textWidth * 0.1)
-		// /* TEST */ 									)
-		// /* TEST */ 								  );
-		// /* TEST */ const textHeight = mt.actualBoundingBoxDescent;
-		// /* TEST */ const frameHeight = textHeight + (3 * TABLE_SCALE);
-		// /* TEST */ roundRect(ctx,
-		// /* TEST */ 		   		  betXCoord,
-		// /* TEST */ 		   		  betYCoord,
-		// /* TEST */ 		   		  frameWidth,
-		// /* TEST */ 		   		  frameHeight,
-		// /* TEST */ 		   		  15 * TABLE_SCALE,
-		// /* TEST */ 		  		  true);
-		// /* TEST */ ctx.fillStyle = ('black');
-		// /* TEST */ ctx.fillText("BET " + i,
-		// /* TEST */ 			 	betXCoord,
-		// /* TEST */ 				betYCoord);
-
-
-		// /* TEST */ // draw bet using player coords
-		// /* TEST */ const ava_size = Math.floor(128 * TABLE_SCALE);
-		// /* TEST */ let betXCoord = playerXCoord + ((playerXCoord > centerPoint.x) ? 0 - ((1) * ava_size): ((1/6) * ava_size));
-		// /* TEST */ let betYCoord = playerYCoord - (ava_size/8);
-		// /* TEST */ const font_size = Math.floor(28 * TABLE_SCALE);
-		// /* TEST */ ctx.fillStyle = ('rgb(194,193,190');
-		// /* TEST */ ctx.font = `bold ${font_size}px sans-serif`;
-		// /* TEST */ ctx.textBaseline = 'top';
+		// /* TEST */ let [betXCoord, betYCoord] = transformCoords(PENDING_BET_COORDS[i][0], PENDING_BET_COORDS[i][1]);
 		// /* TEST */ const mt = ctx.measureText("BET " + i);
 		// /* TEST */ const textWidth = mt.actualBoundingBoxRight + mt.actualBoundingBoxLeft;
 		// /* TEST */ const frameWidth = textWidth + (((textWidth * 0.1) < (5 * TABLE_SCALE))
