@@ -23,7 +23,8 @@ class Round {
             this._hands.push(new Hand(cards, player.seat_idx));
         }
         await this._game.channel.send(`__**Hand#${this._number}\n**__Hands have been dealt to all players. Good luck!`).then(msg => this._game.message = msg);
-        let dealer = this._game.players[this._dealer_idx];
+		let dealer = this._game.players[this._dealer_idx];
+		this._game.table.update_player(dealer, "Dealer");
         this._game.channel.send(`Dealer is ${dealer.nick_or_name()}`);
     }
 
